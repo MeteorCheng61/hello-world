@@ -1,0 +1,5 @@
+query https://www.youtube.com/embed/iCoWnBwDjP0?feature=oembed
+url=https://www.youtube.com/embed/iCoWnBwDjP0?feature=oembed args=
+tempFile=172950_tid00002C40.tmp
+before open 172950_tid00002C40.tmp
+after open 172950_tid00002C40.tmp
