@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六福路 - 普生 高速公路即時影像</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 15px;
+        }
+        h2 {
+            text-align: center;
+            color: #1b5e20;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        .cctv-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .cctv-box {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .cctv-title {
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #444;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* 💡 容器設定維持 4:3 比例 */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #000;
+        }
+        /* 預設顯示原始 img 串流，避免跨域問題 */
+        .cctv-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+        /* Canvas 在底下待命，隨時準備接手最後一幀 */
+        .cctv-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        /* 💡 斷訊時的 CSS 提示：讓整個方塊變暗變灰 */
+        .box-frozen {
+            filter: grayscale(40%) brightness(90%);
+        }
+    </style>
+</head>
+<body>
+
+<h2>🛣️ 六福路 - 普生 國1即時影像</h2>
+
+<div id="cctvGridContainer" class="cctv-grid"></div>
+
+<script>
+    const cctvData = [
+        <!-- { title: "1. 國一北向 - 基隆端", src: "https://cctvs.freeway.gov.tw/live-view/mjpg/video.cgi?camera=1" }, -->
+        { title: "48K+595 南 桃園交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850&t=0.48878248467488206" },
+        { title: "49K+493 北 桃園交流道高架", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940&t=0.2389332893131243" },
+		
+        { title: "50K+022 南 桃園交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000&t=0.12622640198840274" },
+        { title: "50K+571 北 機場交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050&t=0.5862313090521151" },
+
+        { title: "51K+195 南 機場交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15110&t=0.17804722786528882" },
+        { title: "51K+766 北 機場交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15170&t=0.24181726499230527" },
+
+        { title: "53K+710 南 中壢休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15370&t=0.9980118699265013" },
+        { title: "54K+323 北 中壢休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15430&t=0.46309190235416564" },
+
+        { title: "56K+770 南 內壢交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15670&t=0.23971757772902236" },
+        { title: "56K+585 北 內壢交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15650&t=0.8677372018174256" },
+
+        { title: "58K+793 南 中壢轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15871&t=0.17391228778560308" },
+        { title: "58K+783 北 中壢轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15870&t=0.9815737566575197" },
+
+        { title: "65K+024 南 平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16501&t=0.7819664069688331" },
+        { title: "65K+500 北 平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16550&t=0.4626828997434461" },
+
+        { title: "67K+000 南 幻獅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16700&t=0.9579582290126469" },
+        { title: "67K+000 北 幻獅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16701&t=0.4188123308453714" },
+		
+        { title: "68K+340 南 楊梅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16830&t=0.18966142120511942" },
+        { title: "69K+500 北 楊梅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16950&t=0.48486034503760245" },
+
+        { title: "70K+500 南 校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17051&t=0.904969650627257" },
+        { title: "70K+900 北 校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17090&t=0.8581774387233717" },
+
+        { title: "71K+400 南 楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17140&t=0.001578828472899363" },
+        { title: "71K+900 北 楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17190&t=0.3479455561912427" },
+		
+        { title: "82K+020 南 湖口交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18200&t=0.5615955226883724" },
+        { title: "81K+100 北 高鐵段", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18110&t=0.2180850628321459" },
+
+        { title: "86K+090 南 湖口服務區 入口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18602&t=0.28595951846857026" },
+        { title: "86K+000 北 湖口服務區 內", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18601&t=0.49264481551320116" },
+		
+        { title: "87K+050 南 湖口服務區 出口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18700&t=0.34902269865651403" },
+        { title: "87K+490 北 湖口服務區 入口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18740&t=0.24562060827284482" },
+
+        { title: "91K+000 南 竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19100&t=0.8014928138030375" },
+        { title: "90K+470 北 竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040&t=0.7243410502216042" },
+		
+        <!-- { title: "", src: "" }, -->
+        <!-- { title: "", src: "" }, -->
+
+        <!-- { title: "", src: "" }, -->
+        <!-- { title: "", src: "" }, -->
+		
+        <!-- { title: "", src: "" }, -->
+        <!-- { title: "", src: "" }, -->
+
+        <!-- { title: "", src: "" }, -->
+        <!-- { title: "", src: "" }, -->
+		
+    ];
+
+    const container = document.getElementById('cctvGridContainer');
+
+    cctvData.forEach((item, index) => {
+        const box = document.createElement('div');
+        box.className = 'cctv-box';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'cctv-title';
+        titleDiv.textContent = item.title;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'video-wrapper';
+
+        // 1. 建立真實的 img 標籤 (負責正常播放，避開 CORS 問題)
+        const img = document.createElement('img');
+        img.className = 'cctv-img';
+        img.src = item.src;
+
+        // 2. 建立待命的 Canvas (負責斷電凍結畫面)
+        const canvas = document.createElement('canvas');
+        canvas.className = 'cctv-canvas';
+        canvas.width = 400;
+        canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(canvas);
+        box.appendChild(titleDiv);
+        box.appendChild(wrapper);
+        container.appendChild(box);
+
+        let lastUpdate = Date.now();
+        let isFrozen = false;
+
+        // 💡 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
+        img.onload = function() {
+            if (isFrozen) return;
+            lastUpdate = Date.now(); // 刷新最後收到的影格時間
+            
+            // 嘗試在背景把當前影格記錄到 Canvas 當作備份副本
+            try {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            } catch (e) {
+                // 由於跨域限制，drawImage 會在控制台跳錯誤，但「最後畫面依然會成功留在畫布上」
+                // 這是利用瀏覽器渲染引擎的特性，即使 tainted canvas 無法導出(toDataURL)，但繪製畫面上仍有效
+            }
+        };
+
+        // 💡 如果網路直接報錯 (例如 404/502)
+        img.onerror = function() {
+            freezeThisCamera();
+        };
+
+        function freezeThisCamera() {
+            if (isFrozen) return;
+            isFrozen = true;
+            box.classList.add('box-frozen');
+            titleDiv.textContent = "[訊號暫停] " + item.title;
+            img.style.display = 'none'; // 隱藏變成黑畫面的 img，讓地下的 Canvas 最後畫面露出來
+        }
+
+        // 💡 監控看守狗 (Watchdog)：高公局斷流時常常「不報錯」，而是畫面直接卡死。
+        // 我們每 4 秒檢查一次，如果該格子超過 4 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
+        setInterval(function() {
+            if (!isFrozen && (Date.now() - lastUpdate > 4000)) {
+                freezeThisCamera();
+            }
+        }, 2000);
+
+        // 💡 背景每 30 秒默默嘗試重連機制
+        setInterval(function() {
+            if (isFrozen) {
+                const testImg = new Image();
+                testImg.onload = function() {
+                    // 如果後台連線成功，代表訊號回來了，重啟這張卡片
+                    isFrozen = false;
+                    box.classList.remove('box-frozen');
+                    titleDiv.textContent = item.title;
+                    img.style.display = 'block';
+                    img.src = item.src + '&refresh=' + new Date().getTime();
+                    lastUpdate = Date.now();
+                };
+                testImg.src = item.src + '&test=' + new Date().getTime();
+            }
+        }, 15000);
+    });
+</script>
+
+</body>
+</html>
