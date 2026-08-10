@@ -2311,7 +2311,6 @@
 			},
 		};
 
-
         const selectRoad = document.getElementById('selectRoad');
         const selectRange = document.getElementById('selectRange');
         const videoGrid = document.getElementById('videoGrid');
@@ -2503,10 +2502,10 @@
             const imgId = `cam-img-${index}`;
             const badgeId = `cam-badge-${index}`;
 
-			card.dataset.imgId = imgId;
-			card.dataset.isOffline = "false";
-			card.dataset.baseUrl = cam.VideoStreamURL;
-			card.dataset.direction = cam.RoadDirection || '即時';
+            card.dataset.imgId = imgId;
+            card.dataset.isOffline = "false";
+            card.dataset.baseUrl = cam.VideoStreamURL;
+            card.dataset.direction = cam.RoadDirection || '即時';
 
             const imgUrl = `${cam.VideoStreamURL}&t=${new Date().getTime()}`;
 
@@ -2529,10 +2528,10 @@
             `;
 
             videoGrid.appendChild(card);
-			// 註冊 IntersectionObserver 觀察卡片
-			if (observer) {
-				observer.observe(card);
-			}
+            // 註冊 IntersectionObserver 觀察卡片
+            if (observer) {
+                observer.observe(card);
+            }
             startStreamCanvasMirror(imgId, canvasId, badgeId, card);
         }
 
@@ -2553,7 +2552,6 @@
                 isBroken = true;
 
                 if (animTimer) cancelAnimationFrame(animTimer);
-                if (checkTimer) clearInterval(checkTimer);
 
                 // 畫面僅調暗 10%
                 canvas.classList.add('offline');
@@ -2569,7 +2567,7 @@
             }
 
             function drawFrame() {
-                if (isBroken) return;
+                if (isBroken) return; // 斷訊時不進行繪製
 
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
                     if (canvas.width !== img.naturalWidth) {
@@ -2577,42 +2575,52 @@
                         canvas.height = img.naturalHeight;
                     }
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    lastUpdate = Date.now();
+                    lastUpdate = Date.now(); // 成功繪製，更新時間
                 }
 
                 animTimer = requestAnimationFrame(drawFrame);
                 activeTimers.push(animTimer);
             }
 
-            // 重新整理影像串流的函式
-            card.refreshStream = function() {
-                isBroken = false;
-                card.dataset.isOffline = "false";
-                card.classList.remove('is-offline');
-                canvas.classList.remove('offline');
-                badge.textContent = card.dataset.direction;
-                badge.classList.remove('badge-offline');
+            // 當影像成功載入且有尺寸時，才解除斷訊狀態並畫到 Canvas
+            img.onload = function() {
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    if (isBroken) {
+                        // 解除斷訊狀態與 UI 樣式
+                        isBroken = false;
+                        canvas.classList.remove('offline');
+                        badge.textContent = card ? card.dataset.direction : '即時';
+                        badge.classList.remove('badge-offline');
 
-                lastUpdate = Date.now();
-                // 加上時間戳記以更新流量與繞過快取
-                img.src = `${card.dataset.baseUrl}&t=${new Date().getTime()}`;
+                        if (card) {
+                            card.classList.remove('is-offline');
+                            card.dataset.isOffline = "false";
+                        }
 
-                drawFrame();
-
-                if (checkTimer) clearInterval(checkTimer);
-                checkTimer = setInterval(() => {
-                    if (Date.now() - lastUpdate > 1500) {
-                        triggerOffline();
+                        // 重新啟動繪製迴圈
+                        drawFrame();
                     }
-                }, 500);
-                activeTimers.push(checkTimer);
-            };
 
-            drawFrame();
+                    // 繪製最新圖像
+                    if (canvas.width !== img.naturalWidth) {
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                    }
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    lastUpdate = Date.now();
+                }
+            };
 
             img.onerror = function() {
                 triggerOffline();
             };
+
+            // 重新整理影像串流的函式 (僅更新 src 觸發重新請求，不先行解鎖斷訊狀態)
+            card.refreshStream = function() {
+                img.src = `${card.dataset.baseUrl}&t=${new Date().getTime()}`;
+            };
+
+            drawFrame();
 
             checkTimer = setInterval(() => {
                 if (Date.now() - lastUpdate > 1500) {
