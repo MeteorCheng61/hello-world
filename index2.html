@@ -2311,6 +2311,7 @@
 			},
 		};
 
+
         const selectRoad = document.getElementById('selectRoad');
         const selectRange = document.getElementById('selectRange');
         const videoGrid = document.getElementById('videoGrid');
@@ -2351,9 +2352,7 @@
             autoCheckInterval = setInterval(() => {
                 visibleCards.forEach(card => {
                     if (card.dataset.isOffline === "true") {
-                        const imgId = card.dataset.imgId;
-                        const img = document.getElementById(imgId);
-                        if (img && card.refreshStream) {
+                        if (card.refreshStream) {
                             card.refreshStream();
                         }
                     }
@@ -2507,7 +2506,7 @@
             card.dataset.baseUrl = cam.VideoStreamURL;
             card.dataset.direction = cam.RoadDirection || '即時';
 
-            const imgUrl = `${cam.VideoStreamURL}&t=${new Date().getTime()}`;
+            const imgUrl = `${cam.VideoStreamURL}&t=${Date.now()}&r=${Math.random()}`;
 
             const sectionText = cam.RoadSection ? cam.RoadSection.replace('-', ' - ') : '';
             const locationTitle = cam.location || `${cam.RoadName} ${cam.RoadDirection}`;
@@ -2546,6 +2545,7 @@
             let checkTimer = null;
             let isBroken = false;
             let lastUpdate = Date.now();
+            let isRefreshing = false; // 防重複觸發請求鎖
 
             function triggerOffline() {
                 if (isBroken) return;
@@ -2553,7 +2553,7 @@
 
                 if (animTimer) cancelAnimationFrame(animTimer);
 
-                // 畫面僅調暗 10%
+                // 畫面調暗並套用斷訊樣式
                 canvas.classList.add('offline');
 
                 // 下方文字標籤替換為「斷訊」
@@ -2567,7 +2567,7 @@
             }
 
             function drawFrame() {
-                if (isBroken) return; // 斷訊時不進行繪製
+                if (isBroken) return; // 斷訊狀態下暫停繪製
 
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
                     if (canvas.width !== img.naturalWidth) {
@@ -2575,33 +2575,33 @@
                         canvas.height = img.naturalHeight;
                     }
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    lastUpdate = Date.now(); // 成功繪製，更新時間
+                    lastUpdate = Date.now();
                 }
 
                 animTimer = requestAnimationFrame(drawFrame);
                 activeTimers.push(animTimer);
             }
 
-            // 當影像成功載入且有尺寸時，才解除斷訊狀態並畫到 Canvas
+            function restoreOnline() {
+                isBroken = false;
+                canvas.classList.remove('offline');
+                badge.textContent = card ? card.dataset.direction : '即時';
+                badge.classList.remove('badge-offline');
+
+                if (card) {
+                    card.classList.remove('is-offline');
+                    card.dataset.isOffline = "false";
+                }
+
+                drawFrame();
+            }
+
+            // 當原生標籤成功更新時
             img.onload = function() {
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
                     if (isBroken) {
-                        // 解除斷訊狀態與 UI 樣式
-                        isBroken = false;
-                        canvas.classList.remove('offline');
-                        badge.textContent = card ? card.dataset.direction : '即時';
-                        badge.classList.remove('badge-offline');
-
-                        if (card) {
-                            card.classList.remove('is-offline');
-                            card.dataset.isOffline = "false";
-                        }
-
-                        // 重新啟動繪製迴圈
-                        drawFrame();
+                        restoreOnline();
                     }
-
-                    // 繪製最新圖像
                     if (canvas.width !== img.naturalWidth) {
                         canvas.width = img.naturalWidth;
                         canvas.height = img.naturalHeight;
@@ -2615,9 +2615,42 @@
                 triggerOffline();
             };
 
-            // 重新整理影像串流的函式 (僅更新 src 觸發重新請求，不先行解鎖斷訊狀態)
+            // 專為 iOS 優化的預載式重連機制
             card.refreshStream = function() {
-                img.src = `${card.dataset.baseUrl}&t=${new Date().getTime()}`;
+                if (isRefreshing) return; // 正在連線測試中，跳過以避免掛起連線
+                isRefreshing = true;
+
+                const tempImg = new Image();
+                const freshUrl = `${card.dataset.baseUrl}&t=${Date.now()}&r=${Math.random()}`;
+
+                tempImg.onload = function() {
+                    if (tempImg.naturalWidth > 0 && tempImg.naturalHeight > 0) {
+                        // 1. 強制清空舊連線
+                        img.src = "";
+                        // 2. 指向已驗證成功的新圖片 URL
+                        img.src = freshUrl;
+
+                        // 3. 立即繪製新畫面
+                        if (canvas.width !== tempImg.naturalWidth) {
+                            canvas.width = tempImg.naturalWidth;
+                            canvas.height = tempImg.naturalHeight;
+                        }
+                        ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+                        lastUpdate = Date.now();
+
+                        if (isBroken) {
+                            restoreOnline();
+                        }
+                    }
+                    isRefreshing = false;
+                };
+
+                tempImg.onerror = function() {
+                    isRefreshing = false;
+                    tempImg.src = "";
+                };
+
+                tempImg.src = freshUrl;
             };
 
             drawFrame();
