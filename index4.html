@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高速公路即時影像監控系統</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --border-color: #334155;
+            --danger-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 12px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            padding: 10px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto 12px auto;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        select {
+            background-color: #0f172a;
+            color: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 200px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--accent-color);
+        }
+
+        select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            flex: 1;
+            align-content: start;
+        }
+
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .cam-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: border-color 0.3s;
+            width: 100%;
+        }
+
+        .cam-card.is-offline {
+            border-color: var(--danger-color);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%;
+            background-color: #000000;
+        }
+
+        .video-container img.source-img {
+            display: none;
+        }
+
+        .video-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: filter 0.3s ease;
+        }
+
+        .video-container canvas.offline {
+            filter: brightness(0.9);
+        }
+
+        .cam-info {
+            padding: 8px 12px;
+            background-color: var(--card-bg);
+        }
+
+        .cam-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            background-color: var(--accent-color);
+            color: #000000;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .badge.badge-offline {
+            background-color: var(--danger-color);
+            color: #ffffff;
+            font-weight: 800;
+            letter-spacing: 1px;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        }
+
+        .cam-detail {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            line-height: 1.3;
+        }
+
+        .float-btn {
+            position: fixed;
+            z-index: 999;
+            background-color: var(--accent-color);
+            color: #0f172a;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+            display: none;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .float-btn:hover {
+            transform: translateY(-3px);
+            background-color: #7dd3fc;
+        }
+
+        #btnPrev { top: 15px; right: 20px; }
+        #btnNext { bottom: 15px; right: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>高速公路即時影像監控系統</h1>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="selectRoad">1. 選擇道路</label>
+            <select id="selectRoad">
+                <option value="">-- 請選擇道路 --</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="selectRange">2. 選擇里程/編號區間</label>
+            <select id="selectRange" disabled>
+                <option value="">-- 請先選擇道路 --</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="videoGrid" class="video-grid"></div>
+
+    <a id="btnPrev" class="float-btn" href="javascript:void(0);">▲ 上一區間</a>
+    <a id="btnNext" class="float-btn" href="javascript:void(0);">▼ 下一區間</a>
+
+    <script>
+        let activeTimers = [];
+        let viewObservers = [];
+
+        const cctvData = {
+            "N1": {
+                "N1-0-30": {
+                    "CCTV-N1-S-0.000-M": { "CCTVID": "CCTV-N1-S-0.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15501","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "基隆-汐止", "location": "國道1號 南下 0.0K"},
+                    "CCTV-N1-S-15.500-M": { "CCTVID": "CCTV-N1-S-15.500-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18603","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "基隆-汐止", "location": "國道1號 南下 15.5K"}
+                },
+                "N1-30-60": {
+                    "CCTV-N1-S-30.000-M": { "CCTVID": "CCTV-N1-S-30.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10000","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "五股-泰山", "location": "國道1號 南下 30.0K" },
+                    "CCTV-N1-S-31.000-M": { "CCTVID": "CCTV-N1-S-31.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10002","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "五股-泰山", "location": "國道1號 南下 31.0K" },
+                    "CCTV-N1-S-32.000-M": { "CCTVID": "CCTV-N1-S-32.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10010","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "五股-泰山", "location": "國道1號 南下 32.0K" },
+                    EPMTY: {}, // 第4個元素為空物件
+                    "CCTV-N1-S-34.000-M": { "CCTVID": "CCTV-N1-S-34.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10030","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 34.0K" },
+                    "CCTV-N1-S-35.000-M": { "CCTVID": "CCTV-N1-S-35.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10070","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 35.0K" },
+                    "CCTV-N1-S-36.000-M": { "CCTVID": "CCTV-N1-S-36.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10110","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 36.0K" },
+                    "CCTV-N1-S-37.000-M": { "CCTVID": "CCTV-N1-S-37.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10280","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 37.0K" },
+                    "CCTV-N1-S-38.000-M": { "CCTVID": "CCTV-N1-S-38.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10390","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "林口-桃園", "location": "國道1號 南下 38.0K" },
+                    "CCTV-N1-S-39.000-M": { "CCTVID": "CCTV-N1-S-39.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10450","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "林口-桃園", "location": "國道1號 南下 39.0K" },
+                    "CCTV-N1-S-40.000-M": { "CCTVID": "CCTV-N1-S-40.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10680","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "林口-桃園", "location": "國道1號 南下 40.0K" },
+                    "CCTV-N1-S-41.000-M": { "CCTVID": "CCTV-N1-S-41.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10800","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "林口-桃園", "location": "國道1號 南下 41.0K" },
+                    "CCTV-N1-S-42.000-M": { "CCTVID": "CCTV-N1-S-42.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10880","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "林口-桃園", "location": "國道1號 南下 42.0K" },
+                    "CCTV-N1-S-43.000-M": { "CCTVID": "CCTV-N1-S-43.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10907","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "林口-桃園", "location": "國道1號 南下 43.0K" },
+                    "CCTV-N1-S-44.000-M": { "CCTVID": "CCTV-N1-S-44.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10900","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "桃園-機場系統", "location": "國道1號 南下 44.0K" },
+                    "CCTV-N1-S-45.000-M": { "CCTVID": "CCTV-N1-S-45.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=11150","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "桃園-機場系統", "location": "國道1號 南下 45.0K" },
+                    "CCTV-N1-S-46.000-M": { "CCTVID": "CCTV-N1-S-46.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=11300","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "桃園-機場系統", "location": "國道1號 南下 46.0K" },
+                    "CCTV-N1-S-47.000-M": { "CCTVID": "CCTV-N1-S-47.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=12290","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "桃園-機場系統", "location": "國道1號 南下 47.0K" },
+                    "CCTV-N1-S-48.000-M": { "CCTVID": "CCTV-N1-S-48.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=12690","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "機場系統-中壢", "location": "國道1號 南下 48.0K" },
+                    "CCTV-N1-S-49.000-M": { "CCTVID": "CCTV-N1-S-49.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13270","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "機場系統-中壢", "location": "國道1號 南下 49.0K" },
+                    "CCTV-N1-S-50.000-M": { "CCTVID": "CCTV-N1-S-50.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13291","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "機場系統-中壢", "location": "國道1號 南下 50.0K" },
+                    "CCTV-N1-S-51.000-M": { "CCTVID": "CCTV-N1-S-51.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13380","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "機場系統-中壢", "location": "國道1號 南下 51.0K" },
+                    "CCTV-N1-S-52.000-M": { "CCTVID": "CCTV-N1-S-52.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13400","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "機場系統-中壢", "location": "國道1號 南下 52.0K" },
+                    "CCTV-N1-S-53.000-M": { "CCTVID": "CCTV-N1-S-53.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13440","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 53.0K" },
+                    "CCTV-N1-S-54.000-M": { "CCTVID": "CCTV-N1-S-54.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13510","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 54.0K" },
+                    "CCTV-N1-S-55.000-M": { "CCTVID": "CCTV-N1-S-55.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13610","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 55.0K" },
+                    "CCTV-N1-S-56.000-M": { "CCTVID": "CCTV-N1-S-56.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=13830","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 56.0K" },
+                    "CCTV-N1-S-57.000-M": { "CCTVID": "CCTV-N1-S-57.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14080","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 57.0K" },
+                    "CCTV-N1-S-58.000-M": { "CCTVID": "CCTV-N1-S-58.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14100","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 58.0K" },
+                    "CCTV-N1-S-59.000-M": { "CCTVID": "CCTV-N1-S-59.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14180","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 59.0K" }
+                },
+                "N1-60-90": {
+                    "CCTV-N1-S-65.000-M": { "CCTVID": "CCTV-N1-S-65.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18600","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "中壢-楊梅", "location": "國道1號 南下 65.0K" }
+                }
+            },
+            "N3": {
+                "N3-0-30": {
+                    "CCTV-N3-N-10.000-M": { "CCTVID": "CCTV-N3-N-10.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18600","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道3號", "RoadDirection": "北上", "RoadSection": "基金-汐止", "location": "國道3號 北上 10.0K" }
+                }
+            }
+        };
+
+
+        const selectRoad = document.getElementById('selectRoad');
+        const selectRange = document.getElementById('selectRange');
+        const videoGrid = document.getElementById('videoGrid');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+
+        function initRoadSelect() {
+            Object.keys(cctvData).forEach(roadKey => {
+                const opt = document.createElement('option');
+                opt.value = roadKey;
+                opt.textContent = roadKey;
+                selectRoad.appendChild(opt);
+            });
+        }
+
+        selectRoad.addEventListener('change', function() {
+            const selectedRoad = this.value;
+            selectRange.innerHTML = '<option value="">-- 請選擇區間 --</option>';
+            clearAllVideos();
+
+            if (!selectedRoad || !cctvData[selectedRoad]) {
+                selectRange.disabled = true;
+                updateFloatButtons();
+                return;
+            }
+
+            const rangesObj = cctvData[selectedRoad];
+            Object.keys(rangesObj).forEach(rangeKey => {
+                const camMap = rangesObj[rangeKey];
+                const count = Object.keys(camMap).length;
+
+                const opt = document.createElement('option');
+                opt.value = rangeKey;
+                opt.textContent = `${rangeKey} (含 ${count} 支攝影機)`;
+                selectRange.appendChild(opt);
+            });
+
+            selectRange.disabled = false;
+            updateFloatButtons();
+        });
+
+        selectRange.addEventListener('change', function() {
+            const selectedRoad = selectRoad.value;
+            const selectedRange = this.value;
+
+            clearAllVideos();
+
+            if (!selectedRoad || !selectedRange) {
+                updateFloatButtons();
+                return;
+            }
+
+            const camMap = cctvData[selectedRoad][selectedRange];
+            if (camMap) {
+                renderVideos(Object.values(camMap));
+            }
+
+            updateFloatButtons();
+        });
+
+        function clearAllVideos() {
+            activeTimers.forEach(timer => {
+                cancelAnimationFrame(timer);
+                clearInterval(timer);
+            });
+            activeTimers = [];
+
+            viewObservers.forEach(obs => obs.disconnect());
+            viewObservers = [];
+
+            videoGrid.innerHTML = '';
+        }
+
+        function updateFloatButtons() {
+            const idx = selectRange.selectedIndex;
+            const total = selectRange.options.length;
+
+            if (idx <= 0) {
+                btnPrev.style.display = 'none';
+                btnNext.style.display = 'none';
+                return;
+            }
+
+            if (idx > 1) {
+                const prevText = selectRange.options[idx - 1].value;
+                btnPrev.innerHTML = `▲ 上一區間 (${prevText})`;
+                btnPrev.style.display = 'flex';
+            } else {
+                btnPrev.style.display = 'none';
+            }
+
+            if (idx < total - 1) {
+                const nextText = selectRange.options[idx + 1].value;
+                btnNext.innerHTML = `▼ 下一區間 (${nextText})`;
+                btnNext.style.display = 'flex';
+            } else {
+                btnNext.style.display = 'none';
+            }
+        }
+
+        btnPrev.addEventListener('click', function() {
+            if (selectRange.selectedIndex > 1) {
+                selectRange.selectedIndex -= 1;
+                selectRange.dispatchEvent(new Event('change'));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        btnNext.addEventListener('click', function() {
+            if (selectRange.selectedIndex < selectRange.options.length - 1) {
+                selectRange.selectedIndex += 1;
+                selectRange.dispatchEvent(new Event('change'));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        function renderVideos(cams) {
+            if (cams.length === 1) {
+                videoGrid.style.gridTemplateColumns = '1fr';
+            } else {
+                videoGrid.style.gridTemplateColumns = '';
+            }
+
+            cams.forEach((cam, index) => {
+                const card = document.createElement('div');
+                card.className = 'cam-card';
+                card.id = `cam-card-${index}`;
+
+                const canvasId = `cam-canvas-${index}`;
+                const imgId = `cam-img-${index}`;
+                const badgeId = `cam-badge-${index}`;
+
+                card.innerHTML = `
+                    <div class="video-container">
+                        <img id="${imgId}" class="source-img" alt="${cam.location}">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                    <div class="cam-info">
+                        <div class="cam-title">
+                            <span>${cam.location || cam.CCTVID}</span>
+                            <span id="${badgeId}" class="badge">${cam.RoadDirection || '即時'}</span>
+                        </div>
+                        <div class="cam-detail">
+                            <strong>CCTVID:</strong> ${cam.CCTVID}<br>
+                            <strong>道路 / 路段:</strong> ${(cam.RoadName || '') + ' ' + (cam.RoadSection || '')}
+                        </div>
+                    </div>
+                `;
+
+                videoGrid.appendChild(card);
+                setupIntersectionAndStream(cam.VideoStreamURL, imgId, canvasId, badgeId, `cam-card-${index}`);
+            });
+        }
+
+        function setupIntersectionAndStream(baseUrl, imgId, canvasId, badgeId, cardId) {
+            const img = document.getElementById(imgId);
+            const canvas = document.getElementById(canvasId);
+            const badge = document.getElementById(badgeId);
+            const card = document.getElementById(cardId);
+            if (!img || !canvas || !badge || !card) return;
+
+            const ctx = canvas.getContext('2d');
+            let refreshInterval = null;
+            let animFrameId = null;
+            let isBroken = false;
+
+            function refreshImage() {
+                if (isBroken) return;
+                // 加 Timestamp 避免快取，驅使伺服器回應新影像
+                img.src = `${baseUrl}&t=${new Date().getTime()}`;
+            }
+
+            function triggerOffline() {
+                if (isBroken) return;
+                isBroken = true;
+
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                if (refreshInterval) clearInterval(refreshInterval);
+
+                canvas.classList.add('offline');
+                badge.textContent = '斷訊';
+                badge.classList.add('badge-offline');
+                if (card) card.classList.add('is-offline');
+            }
+
+            function drawFrame() {
+                if (isBroken) return;
+
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    if (canvas.width !== img.naturalWidth) {
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                    }
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+
+                animFrameId = requestAnimationFrame(drawFrame);
+            }
+
+            img.onload = function() {
+                if (!animFrameId) {
+                    drawFrame();
+                }
+            };
+
+            img.onerror = function() {
+                triggerOffline();
+            };
+
+            // 使用 IntersectionObserver 檢查是否進入/離開可視區域
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // 進入可視區域：立即刷新一次，並啟動 8 秒定期更新
+                        refreshImage();
+                        if (!refreshInterval && !isBroken) {
+                            refreshInterval = setInterval(refreshImage, 8000);
+                            activeTimers.push(refreshInterval);
+                        }
+                    } else {
+                        // 離開可視區域：清除定時器，停止 8 秒更新
+                        if (refreshInterval) {
+                            clearInterval(refreshInterval);
+                            refreshInterval = null;
+                        }
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            observer.observe(card);
+            viewObservers.push(observer);
+        }
+
+        initRoadSelect();
+    </script>
+</body>
+</html>
