@@ -260,7 +260,8 @@
 
     <script>
         let activeControllers = [];
-
+        let globalVisibilityInterval = null;
+        let observer = null;
 
         const cctvData = {
             "N1": {
@@ -272,7 +273,7 @@
                     "CCTV-N1-S-30.000-M": { "CCTVID": "CCTV-N1-S-30.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10000","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "五股-泰山", "location": "國道1號 南下 30.0K" },
                     "CCTV-N1-S-31.000-M": { "CCTVID": "CCTV-N1-S-31.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10002","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "五股-泰山", "location": "國道1號 南下 31.0K" },
                     "CCTV-N1-S-32.000-M": { "CCTVID": "CCTV-N1-S-32.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10010","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "五股-泰山", "location": "國道1號 南下 32.0K" },
-                    EPMTY: {}, // 第4個元素為空物件
+                    EPMTY: {},
                     "CCTV-N1-S-34.000-M": { "CCTVID": "CCTV-N1-S-34.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10030","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 34.0K" },
                     "CCTV-N1-S-35.000-M": { "CCTVID": "CCTV-N1-S-35.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10070","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 35.0K" },
                     "CCTV-N1-S-36.000-M": { "CCTVID": "CCTV-N1-S-36.000-M", "VideoStreamURL": "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=10110","link": "https://www.twipcam.com/cam/n1-s-51k-380", "RoadName": "國道1號", "RoadDirection": "南下", "RoadSection": "泰山-林口", "location": "國道1號 南下 36.0K" },
@@ -324,6 +325,24 @@
                 opt.textContent = roadKey;
                 selectRoad.appendChild(opt);
             });
+            initVisibilityCheck();
+        }
+
+        function initVisibilityCheck() {
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    entry.target.dataset.isVisible = entry.isIntersecting ? "true" : "false";
+                });
+            }, { threshold: 0.1 });
+
+            if (globalVisibilityInterval) clearInterval(globalVisibilityInterval);
+            globalVisibilityInterval = setInterval(() => {
+                activeControllers.forEach(ctrl => {
+                    if (ctrl.getCardElement().dataset.isVisible === "true" && ctrl.isBrokenState()) {
+                        ctrl.retry();
+                    }
+                });
+            }, 2000);
         }
 
         selectRoad.addEventListener('change', function() {
@@ -374,6 +393,7 @@
         function clearAllVideos() {
             activeControllers.forEach(ctrl => ctrl.stop());
             activeControllers = [];
+            if (observer) observer.disconnect();
             videoGrid.innerHTML = '';
         }
 
@@ -424,17 +444,14 @@
             let seqNumber = 1;
 
             for (let i = 0; i < cams.length; i += 2) {
-                // 第一欄：流水號卡片
                 const seqCard = document.createElement('div');
                 seqCard.className = 'seq-card';
                 seqCard.textContent = seqNumber;
                 videoGrid.appendChild(seqCard);
 
-                // 第二欄：影像卡片 1
                 const cam1 = cams[i];
                 createCamCard(cam1, i);
 
-                // 第三欄：影像卡片 2 (若有)
                 if (i + 1 < cams.length) {
                     const cam2 = cams[i + 1];
                     createCamCard(cam2, i + 1);
@@ -448,7 +465,6 @@
             const card = document.createElement('div');
             card.id = `cam-card-${index}`;
 
-            // 若物件為空或缺少 VideoStreamURL，則留空展示佔位卡片
             if (!cam || !cam.VideoStreamURL) {
                 card.className = 'cam-card is-empty';
                 videoGrid.appendChild(card);
@@ -481,15 +497,16 @@
             `;
 
             videoGrid.appendChild(card);
-            startStreamCanvasMirror(imgId, canvasId, badgeId, `cam-card-${index}`, cam.VideoStreamURL);
+            if (observer) observer.observe(card);
+            startStreamCanvasMirror(imgId, canvasId, badgeId, `cam-card-${index}`, cam.VideoStreamURL, cam.RoadDirection || '即時');
         }
 
-        function startStreamCanvasMirror(imgId, canvasId, badgeId, cardId, baseUrl) {
+        function startStreamCanvasMirror(imgId, canvasId, badgeId, cardId, baseUrl, originalDirectionText) {
             const img = document.getElementById(imgId);
             const canvas = document.getElementById(canvasId);
             const badge = document.getElementById(badgeId);
             const card = document.getElementById(cardId);
-            if (!img || !canvas || !badge) return;
+            if (!img || !canvas || !badge || !card) return;
 
             const ctx = canvas.getContext('2d');
             let animTimer = null;
@@ -499,16 +516,35 @@
             let isStopped = false;
             let lastUpdate = Date.now();
 
+            function clearInternalTimers() {
+                if (animTimer) cancelAnimationFrame(animTimer);
+                if (checkTimer) clearInterval(checkTimer);
+                if (refreshTimer) clearInterval(refreshTimer);
+            }
+
             const controller = {
                 stop: () => {
                     isStopped = true;
-                    if (animTimer) cancelAnimationFrame(animTimer);
-                    if (checkTimer) clearInterval(checkTimer);
-                    if (refreshTimer) clearInterval(refreshTimer);
-                    
+                    clearInternalTimers();
                     img.onerror = null;
                     img.onload = null;
                     img.src = ''; 
+                },
+                isBrokenState: () => isBroken,
+                getCardElement: () => card,
+                retry: () => {
+                    if (!isBroken || isStopped) return;
+                    
+                    isBroken = false;
+                    canvas.classList.remove('offline');
+                    badge.textContent = originalDirectionText;
+                    badge.classList.remove('badge-offline');
+                    card.classList.remove('is-offline');
+
+                    lastUpdate = Date.now();
+                    bindImageEvents();
+                    startTimers();
+                    img.src = `${baseUrl}&t=${new Date().getTime()}`;
                 }
             };
             activeControllers.push(controller);
@@ -517,12 +553,13 @@
                 if (isBroken || isStopped) return;
                 isBroken = true;
 
-                controller.stop();
+                clearInternalTimers();
+                img.onerror = null;
+                img.onload = null;
 
                 canvas.classList.add('offline');
                 badge.textContent = '斷訊';
                 badge.classList.add('badge-offline');
-
                 if (card) card.classList.add('is-offline');
             }
 
@@ -541,23 +578,34 @@
                 animTimer = requestAnimationFrame(drawFrame);
             }
 
-            animTimer = requestAnimationFrame(drawFrame);
-
-            img.onerror = function() {
-                triggerOffline();
-            };
-
-            refreshTimer = setInterval(() => {
-                if (!isBroken && !isStopped) {
-                    img.src = `${baseUrl}&t=${new Date().getTime()}`;
-                }
-            }, 8000);
-
-            checkTimer = setInterval(() => {
-                if (!isStopped && Date.now() - lastUpdate > 10000) {
+            function bindImageEvents() {
+                img.onerror = function() {
                     triggerOffline();
-                }
-            }, 1000);
+                };
+                img.onload = function() {
+                    lastUpdate = Date.now();
+                };
+            }
+
+            function startTimers() {
+                clearInternalTimers();
+                animTimer = requestAnimationFrame(drawFrame);
+
+                refreshTimer = setInterval(() => {
+                    if (!isBroken && !isStopped) {
+                        img.src = `${baseUrl}&t=${new Date().getTime()}`;
+                    }
+                }, 8000);
+
+                checkTimer = setInterval(() => {
+                    if (!isStopped && !isBroken && Date.now() - lastUpdate > 10000) {
+                        triggerOffline();
+                    }
+                }, 1000);
+            }
+
+            bindImageEvents();
+            startTimers();
         }
 
         initRoadSelect();
