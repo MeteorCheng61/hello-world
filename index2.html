@@ -3375,8 +3375,15 @@
             if (selectRange.selectedIndex > 1) {
                 selectRange.selectedIndex -= 1;
                 selectRange.dispatchEvent(new Event('change'));
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+				
+				// 使用 setTimeout 確保 DOM 渲染新畫面的卡片後再執行滾動
+				setTimeout(() => {
+					window.scrollTo({ 
+						top: document.documentElement.scrollHeight, 
+						behavior: 'smooth' 
+					});
+				}, 50);
+			}
         });
 
         btnNext.addEventListener('click', function() {
