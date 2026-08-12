@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南崁 - 竹北 國一即時影像</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 15px;
+        }
+        h2 {
+            text-align: center;
+            color: #1b5e20;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        .cctv-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .cctv-box {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .cctv-title {
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 20px;
+            color: #444;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+			text-align: center;
+            cursor: pointer; /* 💡 僅標題顯示點擊手指 */
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        /* 💡 懸浮特效：滑鼠移到標題時，標題背景變深、文字變成綠色提示可點擊 */
+        .cctv-title:hover {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        /* 💡 容器設定維持 4:3 比例 */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #000;
+        }
+        /* 預設顯示原始 img 串流，避免跨域問題 */
+        .cctv-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+        /* Canvas 在底下待命，隨時準備接手最後一幀 */
+        .cctv-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        /* 💡 斷訊時的 CSS 提示：讓整個方塊變暗變灰 */
+        .box-frozen {
+            filter: grayscale(40%) brightness(90%);
+        }
+        /* 💡 核心新增：右上角固定浮動重新整理按鈕樣式 */
+        .floating-refresh-btn {
+            position: fixed;
+            top: 10px;       /* 距離頂部 20px */
+            right: 10px;     /* 距離右側 20px */
+            width: 40px;
+            height: 40px;
+            background-color: #1b5e20; /* 國道綠色色調 */
+            color: white;
+            border-radius: 50%; /* 圓形按鈕 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 9999;     /* 確保永遠疊在所有影片的最上層 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            user-select: none;
+        }
+        /* 滑鼠懸停效果：變亮並輕微放大 */
+        .floating-refresh-btn:hover {
+            background-color: #2e7d32;
+            transform: scale(1.08);
+        }
+        /* 點擊時的下壓動效 */
+        .floating-refresh-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+<a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
+<!-- 💡 浮動刷新按鈕：內部使用 🔄 符號 -->
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
+
+<h2>🛣️ 南崁 - 竹北 即時影像</h2>
+
+<div id="cctvGridContainer" class="cctv-grid"></div>
+
+<script>
+    const cctvData = [
+		{ title: "48K+595 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850", link: "https://www.twipcam.com/cam/n1b-s-48k-595" },
+		{ title: "49K+493 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940", link: "https://www.twipcam.com/cam/n1b-n-49k-493" },
+
+		{ title: "50K+022 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000", link: "https://www.twipcam.com/cam/n1b-s-50k-022" },
+		{ title: "50K+185 北\n機場系統-桃園", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15010", link: "https://www.twipcam.com/cam/n1-n-50k-185" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "50K+571 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050", link: "https://www.twipcam.com/cam/n1b-n-50k-571" },
+
+		{ title: "51K+000 南\n桃園-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15100", link: "https://www.twipcam.com/cam/n1-s-51k-000" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "51K+195 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15110", link: "https://www.twipcam.com/cam/n1b-s-51k-195" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "51K+380 南\n桃園-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15130", link: "https://www.twipcam.com/cam/n1-s-51k-380" },
+		{ title: "51K+766 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15170", link: "https://www.twipcam.com/cam/n1b-n-51k-766" },
+
+		{ title: "52K+100 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15210", link: "https://www.twipcam.com/cam/n1b-s-52k-100" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "52K+640 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15260", link: "https://www.twipcam.com/cam/n1b-s-52k-640" },
+		{ title: "52K+653 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15261", link: "https://www.twipcam.com/cam/n1b-n-52k-653" },
+
+		{ title: "52K+770 南\n機場系統-中壢服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15280", link: "https://www.twipcam.com/cam/n1-s-52k-770" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "53K+710 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15370", link: "https://www.twipcam.com/cam/n1b-s-53k-710" },
+		{ title: "53K+448 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15340", link: "https://www.twipcam.com/cam/n1b-n-53k-448" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "54K+323 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15430", link: "https://www.twipcam.com/cam/n1b-n-54k-323" },
+
+		{ title: "55K+000 南\n機場系統-中壢服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15501", link: "https://www.twipcam.com/cam/n1-s-55k-000" },
+		{ title: "55K+000 北\n中壢服務區-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15502", link: "https://www.twipcam.com/cam/n1-n-55k-000" },
+
+		{ title: "55K+010 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15503", link: "https://www.twipcam.com/cam/n1b-s-55k-010" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "55K+720 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15570", link: "https://www.twipcam.com/cam/n1b-s-55k-720" },
+		{ title: "55K+550 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15550", link: "https://www.twipcam.com/cam/n1b-n-55k-550" },
+
+		{ title: "56K+770 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15670", link: "https://www.twipcam.com/cam/n1b-s-56k-770" },
+		{ title: "56K+585 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15650", link: "https://www.twipcam.com/cam/n1b-n-56k-585" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "56K+980 北\n內壢-中壢服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15690", link: "https://www.twipcam.com/cam/n1-n-56k-980" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "56K+990 北\n內壢-中壢服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15691", link: "https://www.twipcam.com/cam/n1-n-56k-990" },
+
+		{ title: "57K+725 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15770", link: "https://www.twipcam.com/cam/n1b-s-57k-725" },
+		{ title: "57K+063 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15700", link: "https://www.twipcam.com/cam/n1b-n-57k-063" },
+
+		{ title: "57K+950 南\n內壢-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15790", link: "https://www.twipcam.com/cam/n1-s-57k-950" },
+		{ title: "57K+738 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15771", link: "https://www.twipcam.com/cam/n1b-n-57k-738" },
+
+		{ title: "58K+793 南\n中壢轉接一-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15871", link: "https://www.twipcam.com/cam/n1b-s-58k-793" },
+		{ title: "58K+783 北\n中豐-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15870", link: "https://www.twipcam.com/cam/n1b-n-58k-783" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "59K+500 北\n中壢轉接二-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15950", link: "https://www.twipcam.com/cam/n1b-n-59k-500" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "59K+800 北\n中壢轉接二-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15982", link: "https://www.twipcam.com/cam/n1b-n-59k-800" },
+
+		{ title: "60K+200 南\n中豐-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16020", link: "https://www.twipcam.com/cam/n1b-s-60k-200" },
+		{ title: "60K+200 北\n中壢轉接二-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16021", link: "https://www.twipcam.com/cam/n1b-n-60k-200" },
+
+		{ title: "61K+100 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16110", link: "https://www.twipcam.com/cam/n1b-s-61k-100" },
+		{ title: "61K+000 北\n中壢-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16100", link: "https://www.twipcam.com/cam/n1-n-61k-000" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "61K+708 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16170", link: "https://www.twipcam.com/cam/n1b-n-61k-708" },
+
+		{ title: "62K+000 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16200", link: "https://www.twipcam.com/cam/n1b-s-62k-000" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "62K+205 南\n中壢轉接二-中壢", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16220", link: "https://www.twipcam.com/cam/n1-s-62k-205" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "63K+020 南\n中壢-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16301", link: "https://www.twipcam.com/cam/n1-s-63k-020" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "63K+045 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16300", link: "https://www.twipcam.com/cam/n1b-s-63k-045" },
+		{ title: "63K+265 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16320", link: "https://www.twipcam.com/cam/n1b-n-63k-265" },
+
+		{ title: "64K+000 南\n中壢-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16400", link: "https://www.twipcam.com/cam/n1-s-64k-000" },
+		{ title: "64K+360 北\n平鎮系統-中壢", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16430", link: "https://www.twipcam.com/cam/n1b-n-64k-360" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "64K+600 北\n平鎮系統-中壢", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16460", link: "https://www.twipcam.com/cam/n1-n-64k-600" },
+
+		{ title: "65K+024 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16501", link: "https://www.twipcam.com/cam/n1b-s-65k-024" },
+		{ title: "65K+000 北\n幼獅-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16500", link: "https://www.twipcam.com/cam/n1-n-65k-000" },
+
+		{ title: "65K+920 南\n平鎮系統-幼獅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16590", link: "https://www.twipcam.com/cam/n1-s-65k-920" },
+		{ title: "65K+500 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16550", link: "https://www.twipcam.com/cam/n1b-n-65k-500" },
+
+		{ title: "66K+000 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16600", link: "https://www.twipcam.com/cam/n1b-s-66k-000" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "67K+000 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16700", link: "https://www.twipcam.com/cam/n1b-s-67k-000" },
+		{ title: "67K+000 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16701", link: "https://www.twipcam.com/cam/n1b-n-67k-000" },
+
+		{ title: "67K+300 南\n幼獅-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16730", link: "https://www.twipcam.com/cam/n1-s-67k-300" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "67K+395 南\n幼獅-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16731", link: "https://www.twipcam.com/cam/n1-s-67k-395" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "68K+340 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16830", link: "https://www.twipcam.com/cam/n1b-s-68k-340" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "69K+190 南\n幼獅-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16910", link: "https://www.twipcam.com/cam/n1-s-69k-190" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "69K+505 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16951", link: "https://www.twipcam.com/cam/n1b-s-69k-505" },
+		{ title: "69K+500 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16950", link: "https://www.twipcam.com/cam/n1b-n-69k-500" },
+
+		{ title: "70K+500 南\n校前路-楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17051", link: "https://www.twipcam.com/cam/n1b-s-70k-500" },
+		{ title: "70K+150 北\n高架楊梅端-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17010", link: "https://www.twipcam.com/cam/n1-n-70k-150" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "70K+220 北\n高架楊梅端-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17027", link: "https://www.twipcam.com/cam/n1-n-70k-220" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "70K+900 北\n楊梅端-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17090", link: "https://www.twipcam.com/cam/n1b-n-70k-900" },
+
+		{ title: "71K+000 南\n楊梅端-楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17140", link: "https://www.twipcam.com/cam/n1b-s-71k-000" },
+		{ title: "71K+000 北\n楊梅休息站-楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17100", link: "https://www.twipcam.com/cam/n1b-n-71k-000" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "71K+900 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17190", link: "https://www.twipcam.com/cam/n1-n-71k-900" },
+
+		{ title: "72K+675 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17260", link: "https://www.twipcam.com/cam/n1-s-72k-675" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "73K+950 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17390", link: "https://www.twipcam.com/cam/n1-n-73k-950" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "74K+500 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17450", link: "https://www.twipcam.com/cam/n1-n-74k-500" },
+
+		{ title: "75K+390 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17530", link: "https://www.twipcam.com/cam/n1-s-75k-390" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "76K+453 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17640", link: "https://www.twipcam.com/cam/n1-s-76k-453" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "77K+530 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17750", link: "https://www.twipcam.com/cam/n1-n-77k-530" },
+
+		{ title: "78K+600 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17860", link: "https://www.twipcam.com/cam/n1-s-78k-600" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "79K+850 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17980", link: "https://www.twipcam.com/cam/n1-n-79k-850" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "80K+300 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18030", link: "https://www.twipcam.com/cam/n1-n-80k-300" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "81K+100 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18110", link: "https://www.twipcam.com/cam/n1-n-81k-100" },
+
+		{ title: "82K+020 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18200", link: "https://www.twipcam.com/cam/n1-s-82k-020" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "82K+900 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18290", link: "https://www.twipcam.com/cam/n1-s-82k-900" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "83K+750 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18370", link: "https://www.twipcam.com/cam/n1-s-83k-750" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "84K+600 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18460", link: "https://www.twipcam.com/cam/n1-s-84k-600" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "85K+460 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18540", link: "https://www.twipcam.com/cam/n1-s-85k-460" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "86K+000 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18603", link: "https://www.twipcam.com/cam/n1-s-86k-000" },
+		{ title: "86K+000 北\n湖口服務區-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18600", link: "https://www.twipcam.com/cam/n1-n-86k-000" },
+
+		{ title: "86K+090 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18602", link: "https://www.twipcam.com/cam/n1-s-86k-090" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "86K+750 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18670", link: "https://www.twipcam.com/cam/n1-s-86k-750" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "87K+050 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18700", link: "https://www.twipcam.com/cam/n1-s-87k-050" },
+		{ title: "87K+490 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18740", link: "https://www.twipcam.com/cam/n1-n-87k-490" },
+
+		{ title: "88K+590 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18850", link: "https://www.twipcam.com/cam/n1-s-88k-590" },
+		{ title: "", src: "", link: "" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "89K+300 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18930", link: "https://www.twipcam.com/cam/n1-n-89k-300" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "90K+010 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19000", link: "https://www.twipcam.com/cam/n1-n-90k-010" },
+
+		{ title: "", src: "", link: "" },
+		{ title: "90K+470 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90k-470" },		
+    ];
+
+    function formatTitle(text) {
+        return text.replace(/\n/g, '<br>');
+    }
+    const container = document.getElementById('cctvGridContainer');
+
+    // 💡 建立交叉觀察器監聽配置
+    const observerOptions = {
+        root: null, // null 代表以瀏覽器視窗（viewport）為觀察範圍
+        threshold: 0.1 // 卡片只要露出 10% 以上就視為進入顯示範圍
+    };
+
+    // 💡 定義觀察器的行為
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const box = entry.target;
+            // 透過自訂屬性，動態標記這張卡片目前是不是在螢幕範圍內 (true / false)
+            box.setAttribute('data-in-view', entry.isIntersecting);
+        });
+    }, observerOptions);
+
+    // 用來存放所有攝影機控制函式的陣列，方便點擊全局刷新按鈕時統一調用
+    const cameraControllers = [];
+
+    cctvData.forEach((item, index) => {
+        const box = document.createElement('div');
+        box.className = 'cctv-box';
+		
+		// 💡 處理資料為空的情況：若無 title 與 src，直接生成空白卡片並跳過後續攝影機邏輯
+		if (!item.title && !item.src) {
+			box.style.visibility = 'hidden'; // 隱藏內容但保留空間 (亦可改用 opacity: 0)
+			// 若希望完全不佔據背景邊框，可以取消邊框與背景：
+			// box.style.border = 'none';
+			// box.style.background = 'transparent';
+			// box.style.boxShadow = 'none';
+			
+			container.appendChild(box);
+			return; // 結束本次迴圈，不執行監聽與圖片載入
+		}
+		
+        box.setAttribute('data-in-view', 'false');
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'cctv-title';
+        titleDiv.innerHTML = formatTitle(item.title); // 💡 套用 \n 轉換
+
+        titleDiv.addEventListener('click', function() {
+            window.open(item.link, '_blank');
+        });
+		
+        const wrapper = document.createElement('div');
+        wrapper.className = 'video-wrapper';
+
+        // 1. 建立真實的 img 標籤 (負責正常播放，避開 CORS 問題)
+        const img = document.createElement('img');
+        img.className = 'cctv-img';
+        img.src = item.src;
+
+        // 2. 建立待命的 Canvas (負責斷電凍結畫面)
+        const canvas = document.createElement('canvas');
+        canvas.className = 'cctv-canvas';
+        canvas.width = 400;
+        canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(canvas);
+        box.appendChild(titleDiv);
+        box.appendChild(wrapper);
+        container.appendChild(box);
+
+        // 💡 讓觀察器開始追蹤這個卡片元素
+        observer.observe(box);
+
+        let lastUpdate = Date.now();
+        let isFrozen = false;
+
+        // 💡 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
+        img.onload = function() {
+            if (isFrozen) return;
+            lastUpdate = Date.now(); // 刷新最後收到的影格時間
+            
+            // 嘗試在背景把當前影格記錄到 Canvas 當作備份副本
+            try {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            } catch (e) {
+                // 由於跨域限制，drawImage 會在控制台跳錯誤，但「最後畫面依然會成功留在畫布上」
+                // 這是利用瀏覽器渲染引擎的特性，即使 tainted canvas 無法導出(toDataURL)，但繪製畫面上仍有效
+            }
+        };
+
+        // 💡 如果網路直接報錯 (例如 404/502)
+        img.onerror = function() {
+            freezeThisCamera();
+        };
+
+        function freezeThisCamera() {
+            if (isFrozen) return;
+            isFrozen = true;
+            box.classList.add('box-frozen');
+			
+            // 💡 斷訊時，保留原本用 \n 分開的兩行，並在右側或尾端補上紅色狀態字樣
+            titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
+            img.style.display = 'none'; // 隱藏變成黑畫面的 img，讓地下的 Canvas 最後畫面露出來
+        }
+
+        // 💡 提供一個公開的刷新管道給外部按鈕呼叫
+        function forceResetAndRefresh() {
+            isFrozen = false;
+            box.classList.remove('box-frozen');
+            titleDiv.innerHTML = formatTitle(item.title);
+            img.style.display = 'block';
+            // 強制加上最新時間戳，使瀏覽器清空緩存，向高公局發送全新連線
+            img.src = item.src + '&forceRefresh=' + new Date().getTime();
+            lastUpdate = Date.now();
+        }
+
+        // 將此格子的重置控制權丟到全域陣列中
+        cameraControllers.push(forceResetAndRefresh);
+
+        // 💡 監控看守狗 (Watchdog)：高公局斷流時常常「不報錯」，而是畫面直接卡死。
+        // 我們每 4 秒檢查一次，如果該格子超過 4 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
+        setInterval(function() {
+            if (!isFrozen && (Date.now() - lastUpdate > 4000)) {
+                freezeThisCamera();
+            }
+        }, 2000);
+
+        // 💡 背景每 30 秒默默嘗試重連機制
+        setInterval(function() {
+            // 同時滿足兩個條件：1. 必須是斷訊狀態 (isFrozen) 2. 必須在目前的視窗範圍內 (data-in-view === 'true')
+            const isInView = box.getAttribute('data-in-view') === 'true';
+            
+            if (isFrozen && isInView) {
+                const testImg = new Image();
+                testImg.onload = function() {
+                    // 如果後台連線成功，代表訊號回來了，重啟這張卡片
+                    isFrozen = false;
+                    box.classList.remove('box-frozen');
+                    titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
+                    img.style.display = 'block';
+                    img.src = item.src + '&refresh=' + new Date().getTime();
+                    lastUpdate = Date.now();
+                };
+                testImg.src = item.src + '&test=' + new Date().getTime();
+            }
+        }, 8000);
+    });
+
+    // 💡 2. 核心新增：為右上角浮動按鈕綁定「點擊事件」
+    document.getElementById('globalRefreshBtn').addEventListener('click', function() {
+        // 讓按鈕本身轉動一下，增加視覺特效
+        this.style.transform = 'rotate(360deg)';
+        setTimeout(() => { this.style.transform = 'none'; }, 500);
+
+        // 呼叫陣列裡所有格子的刷新控制器，一鍵全面復活所有攝影機
+        cameraControllers.forEach(refreshFunc => {
+            refreshFunc();
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -122,7 +122,7 @@
 <!-- 💡 浮動刷新按鈕：內部使用 🔄 符號 -->
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
 
-<h2>🛣️ 六福路 - 普生 國1即時影像</h2>
+<h2>🛣️ 南崁 - 竹北 即時影像</h2>
 
 <div id="cctvGridContainer" class="cctv-grid"></div>
 
@@ -130,6 +130,7 @@
     const cctvData = [
         { title: "48K+595 南\n桃園交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850", link: "https://www.twipcam.com/cam/n1b-s-48k-595" },
         { title: "49K+493 北\n桃園交流道高架", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940", link: "https://www.twipcam.com/cam/n1b-n-49k-493" },
+		
 		
         { title: "50K+022 南\n蘆興南路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000", link: "https://www.twipcam.com/cam/n1b-s-50k-022" },
         { title: "50K+571 北\n蘆興南路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050", link: "https://www.twipcam.com/cam/n1b-n-50K-571" },
@@ -204,6 +205,19 @@
     cctvData.forEach((item, index) => {
         const box = document.createElement('div');
         box.className = 'cctv-box';
+		
+		// 💡 處理資料為空的情況：若無 title 與 src，直接生成空白卡片並跳過後續攝影機邏輯
+		if (!item.title && !item.src) {
+			box.style.visibility = 'hidden'; // 隱藏內容但保留空間 (亦可改用 opacity: 0)
+			// 若希望完全不佔據背景邊框，可以取消邊框與背景：
+			// box.style.border = 'none';
+			// box.style.background = 'transparent';
+			// box.style.boxShadow = 'none';
+			
+			container.appendChild(box);
+			return; // 結束本次迴圈，不執行監聽與圖片載入
+		}
+		
         box.setAttribute('data-in-view', 'false');
 
         const titleDiv = document.createElement('div');
