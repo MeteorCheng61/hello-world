@@ -53,18 +53,18 @@
             background-color: #e8f5e9;
             color: #2e7d32;
         }
-        /* 💡 容器設定維持 4:3 比例 */
+
         .video-wrapper {
             position: relative;
             width: 100%;
-            aspect-ratio: 4 / 3;
+            aspect-ratio: 352 / 240;
             background: #000;
         }
         /* 預設顯示原始 img 串流，避免跨域問題 */
         .cctv-img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             display: block;
             position: absolute;
             top: 0;
@@ -75,12 +75,12 @@
         .cctv-canvas {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             display: block;
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 2;
+            z-index: 1;
         }
         /* 💡 斷訊時的 CSS 提示：讓整個方塊變暗變灰 */
         .box-frozen {
@@ -239,8 +239,6 @@
         // 2. 建立待命的 Canvas (負責斷電凍結畫面)
         const canvas = document.createElement('canvas');
         canvas.className = 'cctv-canvas';
-        canvas.width = 400;
-        canvas.height = 300;
         const ctx = canvas.getContext('2d');
 
         wrapper.appendChild(img);
@@ -260,6 +258,10 @@
             if (isFrozen) return;
             lastUpdate = Date.now(); // 刷新最後收到的影格時間
             
+			if (img.naturalWidth && img.naturalHeight) {
+				canvas.width = img.naturalWidth;
+				canvas.height = img.naturalHeight;
+			}
             // 嘗試在背景把當前影格記錄到 Canvas 當作備份副本
             try {
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);

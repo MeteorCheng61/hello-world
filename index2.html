@@ -124,8 +124,9 @@
         .video-container {
             position: relative;
             width: 100%;
-            padding-top: 56.25%;
-            background-color: #000000;
+			background-color: #000000;
+			aspect-ratio: 352 / 240; /* 預設 16:9 占位，等影像載入後自動更正 */
+			padding-top: 0; /* 移除原本硬性固定的 padding-top */			
         }
 
         .video-container img.source-img {
@@ -138,7 +139,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             transition: filter 0.3s ease;
         }
 

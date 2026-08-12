@@ -45,26 +45,26 @@
             overflow: hidden;
             text-overflow: ellipsis;
 			text-align: center;
-            cursor: pointer; /* 💡 僅標題顯示點擊手指 */
+            cursor: pointer; /* ? 僅標題顯示點擊手指 */
             transition: background-color 0.2s ease, color 0.2s ease;
         }
-        /* 💡 懸浮特效：滑鼠移到標題時，標題背景變深、文字變成綠色提示可點擊 */
+        /* ? 懸浮特效：滑鼠移到標題時，標題背景變深、文字變成綠色提示可點擊 */
         .cctv-title:hover {
             background-color: #e8f5e9;
             color: #2e7d32;
         }
-        /* 💡 容器設定維持 4:3 比例 */
+
         .video-wrapper {
             position: relative;
             width: 100%;
-            aspect-ratio: 4 / 3;
+            aspect-ratio: 352 / 240;
             background: #000;
         }
         /* 預設顯示原始 img 串流，避免跨域問題 */
         .cctv-img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             display: block;
             position: absolute;
             top: 0;
@@ -75,18 +75,18 @@
         .cctv-canvas {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             display: block;
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 2;
+            z-index: 1;
         }
-        /* 💡 斷訊時的 CSS 提示：讓整個方塊變暗變灰 */
+        /* ? 斷訊時的 CSS 提示：讓整個方塊變暗變灰 */
         .box-frozen {
             filter: grayscale(40%) brightness(90%);
         }
-        /* 💡 核心新增：右上角固定浮動重新整理按鈕樣式 */
+        /* ? 核心新增：右上角固定浮動重新整理按鈕樣式 */
         .floating-refresh-btn {
             position: fixed;
             top: 10px;       /* 距離頂部 20px */
@@ -119,10 +119,10 @@
 </head>
 <body>
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
-<!-- 💡 浮動刷新按鈕：內部使用 🔄 符號 -->
-<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
+<!-- ? 浮動刷新按鈕：內部使用 ? 符號 -->
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
 
-<h2>🛣️ 南崁 - 竹北 即時影像</h2>
+<h2>?️ 南崁 - 竹北 即時影像</h2>
 
 <div id="cctvGridContainer" class="cctv-grid"></div>
 
@@ -338,13 +338,13 @@
     }
     const container = document.getElementById('cctvGridContainer');
 
-    // 💡 建立交叉觀察器監聽配置
+    // ? 建立交叉觀察器監聽配置
     const observerOptions = {
         root: null, // null 代表以瀏覽器視窗（viewport）為觀察範圍
         threshold: 0.1 // 卡片只要露出 10% 以上就視為進入顯示範圍
     };
 
-    // 💡 定義觀察器的行為
+    // ? 定義觀察器的行為
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const box = entry.target;
@@ -360,7 +360,7 @@
         const box = document.createElement('div');
         box.className = 'cctv-box';
 		
-		// 💡 處理資料為空的情況：若無 title 與 src，直接生成空白卡片並跳過後續攝影機邏輯
+		// ? 處理資料為空的情況：若無 title 與 src，直接生成空白卡片並跳過後續攝影機邏輯
 		if (!item.title && !item.src) {
 			box.style.visibility = 'hidden'; // 隱藏內容但保留空間 (亦可改用 opacity: 0)
 			// 若希望完全不佔據背景邊框，可以取消邊框與背景：
@@ -376,7 +376,7 @@
 
         const titleDiv = document.createElement('div');
         titleDiv.className = 'cctv-title';
-        titleDiv.innerHTML = formatTitle(item.title); // 💡 套用 \n 轉換
+        titleDiv.innerHTML = formatTitle(item.title); // ? 套用 \n 轉換
 
         titleDiv.addEventListener('click', function() {
             window.open(item.link, '_blank');
@@ -393,8 +393,6 @@
         // 2. 建立待命的 Canvas (負責斷電凍結畫面)
         const canvas = document.createElement('canvas');
         canvas.className = 'cctv-canvas';
-        canvas.width = 400;
-        canvas.height = 300;
         const ctx = canvas.getContext('2d');
 
         wrapper.appendChild(img);
@@ -403,17 +401,21 @@
         box.appendChild(wrapper);
         container.appendChild(box);
 
-        // 💡 讓觀察器開始追蹤這個卡片元素
+        // ? 讓觀察器開始追蹤這個卡片元素
         observer.observe(box);
 
         let lastUpdate = Date.now();
         let isFrozen = false;
 
-        // 💡 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
+        // ? 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
         img.onload = function() {
             if (isFrozen) return;
             lastUpdate = Date.now(); // 刷新最後收到的影格時間
             
+			if (img.naturalWidth && img.naturalHeight) {
+				canvas.width = img.naturalWidth;
+				canvas.height = img.naturalHeight;
+			}
             // 嘗試在背景把當前影格記錄到 Canvas 當作備份副本
             try {
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -423,7 +425,7 @@
             }
         };
 
-        // 💡 如果網路直接報錯 (例如 404/502)
+        // ? 如果網路直接報錯 (例如 404/502)
         img.onerror = function() {
             freezeThisCamera();
         };
@@ -433,12 +435,12 @@
             isFrozen = true;
             box.classList.add('box-frozen');
 			
-            // 💡 斷訊時，保留原本用 \n 分開的兩行，並在右側或尾端補上紅色狀態字樣
+            // ? 斷訊時，保留原本用 \n 分開的兩行，並在右側或尾端補上紅色狀態字樣
             titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
             img.style.display = 'none'; // 隱藏變成黑畫面的 img，讓地下的 Canvas 最後畫面露出來
         }
 
-        // 💡 提供一個公開的刷新管道給外部按鈕呼叫
+        // ? 提供一個公開的刷新管道給外部按鈕呼叫
         function forceResetAndRefresh() {
             isFrozen = false;
             box.classList.remove('box-frozen');
@@ -452,7 +454,7 @@
         // 將此格子的重置控制權丟到全域陣列中
         cameraControllers.push(forceResetAndRefresh);
 
-        // 💡 監控看守狗 (Watchdog)：高公局斷流時常常「不報錯」，而是畫面直接卡死。
+        // ? 監控看守狗 (Watchdog)：高公局斷流時常常「不報錯」，而是畫面直接卡死。
         // 我們每 4 秒檢查一次，如果該格子超過 4 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
         setInterval(function() {
             if (!isFrozen && (Date.now() - lastUpdate > 4000)) {
@@ -460,7 +462,7 @@
             }
         }, 2000);
 
-        // 💡 背景每 30 秒默默嘗試重連機制
+        // ? 背景每 30 秒默默嘗試重連機制
         setInterval(function() {
             // 同時滿足兩個條件：1. 必須是斷訊狀態 (isFrozen) 2. 必須在目前的視窗範圍內 (data-in-view === 'true')
             const isInView = box.getAttribute('data-in-view') === 'true';
@@ -481,7 +483,7 @@
         }, 8000);
     });
 
-    // 💡 2. 核心新增：為右上角浮動按鈕綁定「點擊事件」
+    // ? 2. 核心新增：為右上角浮動按鈕綁定「點擊事件」
     document.getElementById('globalRefreshBtn').addEventListener('click', function() {
         // 讓按鈕本身轉動一下，增加視覺特效
         this.style.transform = 'rotate(360deg)';
