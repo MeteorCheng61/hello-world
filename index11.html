@@ -556,10 +556,10 @@
 		});
 	});
 	
-// ? 當滑動停止時，更新左上角浮動視窗顯示頁面百分比與當前影片 Title
+	// ? 滑動即時顯示頁面百分比與當前影片 Title（滑動停止後自動隱藏）
 	(function() {
-		let scrollTimeout = null;
 		let hideTimeout = null;
+		let stopScrollTimeout = null;
 		const badge = document.getElementById('scrollPercentBadge');
 
 		// 取得目前視窗範圍內最靠近頂部的影片標題
@@ -591,51 +591,51 @@
 			return topTitle;
 		}
 
+		// 更新顯示內容的主函數
+		function updateBadge() {
+			const scrollTop = window.scrollY || document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight;
+			const clientHeight = document.documentElement.clientHeight;
+
+			const totalScrollable = scrollHeight - clientHeight;
+			let scrollPercent = 0;
+
+			if (totalScrollable > 0) {
+				scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
+			}
+
+			const currentTitle = getTopVisibleTitle();
+			// 組合成文字：當前標題 | 位置 %
+			const displayText = currentTitle 
+				? `${currentTitle} | ${scrollPercent}%`
+				: `位置：${scrollPercent}%`;
+
+			badge.innerText = displayText;
+			badge.classList.add('show'); // 即時顯示
+		}
+
 		window.addEventListener('scroll', function() {
-			// 滑動過程中隱藏或準備更新
-			if (scrollTimeout !== null) {
-				clearTimeout(scrollTimeout);
-			}
-			if (hideTimeout !== null) {
-				clearTimeout(hideTimeout);
-			}
+			// 1. 滑動過程：即時計算並更新 Badge
+			updateBadge();
 
-			// 停止滑動 200 毫秒後計算百分比與當前影片標題並顯示浮動視窗
-			scrollTimeout = setTimeout(function() {
-				const scrollTop = window.scrollY || document.documentElement.scrollTop;
-				const scrollHeight = document.documentElement.scrollHeight;
-				const clientHeight = document.documentElement.clientHeight;
+			// 2. 重置隱藏與停止判斷計時器
+			if (hideTimeout !== null) clearTimeout(hideTimeout);
+			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
 
-				const totalScrollable = scrollHeight - clientHeight;
-				let scrollPercent = 0;
-
-				if (totalScrollable > 0) {
-					scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
-				}
-
-				const currentTitle = getTopVisibleTitle();
-				// 組合成文字：位置 % + 當前標題（若有標題則補上分隔線）
-				const displayText = currentTitle 
-					? `${currentTitle} | ${scrollPercent}%`
-					: `位置：${scrollPercent}%`;
-
-				// 更新內容並顯示
-				badge.innerText = displayText;
-				badge.classList.add('show');
-
-				// ? 2. 核心新增：當滾輪停止時，對目前可視視窗內「已斷訊」的圖像觸發重連機制
+			// 3. 停止滑動 200ms 後：對可視區塊內斷訊的鏡頭發起重連
+			stopScrollTimeout = setTimeout(function() {
 				cameraControllers.forEach(ctrl => {
 					ctrl.refreshIfFrozen();
 				});
+			}, 200);
 
-				// 顯示 2.5 秒後自動淡出隱藏
-				hideTimeout = setTimeout(function() {
-					badge.classList.remove('show');
-				}, 2500);
-
-			}, 200); // 200 毫秒無滑動動作判定為停止
+			// 4. 停止滑動 2.5 秒後：自動淡出隱藏
+			hideTimeout = setTimeout(function() {
+				badge.classList.remove('show');
+			}, 2500);
 		});
 	})();
+
 </script>
 
 </body>
