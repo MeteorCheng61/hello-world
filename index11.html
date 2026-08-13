@@ -115,12 +115,39 @@
         .floating-refresh-btn:active {
             transform: scale(0.95);
         }
+		/* ? 左上角頁面位置百分比浮動視窗 */
+		.scroll-percent-badge {
+			position: fixed;
+			top: 10px;
+			left: 10px;
+			background-color: rgba(27, 94, 32, 0.85); /* 半透明國道綠 */
+			color: #ffffff;
+			padding: 6px 12px;
+			border-radius: 20px;
+			font-size: 14px;
+			font-weight: bold;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+			z-index: 9999;
+			pointer-events: none; /* 避免干擾滑鼠點擊 */
+			transition: opacity 0.3s ease, transform 0.3s ease;
+			opacity: 0;           /* 預設隱藏，滾動停止時顯示 */
+			transform: translateY(-5px);
+		}
+
+		/* 顯示時的狀態 */
+		.scroll-percent-badge.show {
+			opacity: 1;
+			transform: translateY(0);
+		}		
     </style>
 </head>
 <body>
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 <!-- ? 浮動刷新按鈕：內部使用 ? 符號 -->
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
+
+<!-- ? 左上角百分比浮動視窗 -->
+<div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
 
 <h2>?️ 南崁 - 竹北 即時影像</h2>
 
@@ -406,6 +433,7 @@
 
         let lastUpdate = Date.now();
         let isFrozen = false;
+		let retryCount = 0; // ? 每個卡片各自獨立的重試計數器
 
         // ? 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
         img.onload = function() {
@@ -443,6 +471,7 @@
         // ? 提供一個公開的刷新管道給外部按鈕呼叫
         function forceResetAndRefresh() {
             isFrozen = false;
+			retryCount = 0; // 手動刷新時重置計數
             box.classList.remove('box-frozen');
             titleDiv.innerHTML = formatTitle(item.title);
             img.style.display = 'block';
@@ -451,49 +480,162 @@
             lastUpdate = Date.now();
         }
 
+        let ReconnectRequest = false;
+		
+        function Refresh() {
+			if ( !ReconnectRequest ) {
+				ReconnectRequest = true;
+				const testImg = new Image();
+				testImg.onload = function() {
+					// 只有真實拿到影像才解除斷訊
+					if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
+						isFrozen = false;
+						retryCount = 0; // 成功連線，歸零計數
+						box.classList.remove('box-frozen');
+						titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
+						img.style.display = 'block';
+						img.src = item.src + '&refresh=' + new Date().getTime();
+						lastUpdate = Date.now();
+					}
+				};
+				// 測試失敗時，僅累加此攝影機自己的 retryCount
+				testImg.onerror = function() {
+					retryCount++;
+					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
+				};
+				testImg.src = item.src + '&test=' + new Date().getTime();
+				ReconnectRequest = false;
+			}
+		}
+		
         // 將此格子的重置控制權丟到全域陣列中
-        cameraControllers.push(forceResetAndRefresh);
-
+		cameraControllers.push({
+			forceReset: forceResetAndRefresh,
+			refreshIfFrozen: function() {
+				const isInView = box.getAttribute('data-in-view') === 'true';
+				if (isFrozen && isInView) {
+					Refresh();
+				}
+			}
+		});
+		
         // ? 監控看守狗 (Watchdog)：高公局斷流時常常「不報錯」，而是畫面直接卡死。
-        // 我們每 4 秒檢查一次，如果該格子超過 4 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
+        // 我們每 6 秒檢查一次，如果該格子超過 10 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
         setInterval(function() {
-            if (!isFrozen && (Date.now() - lastUpdate > 4000)) {
-                freezeThisCamera();
+            if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
+                retryCount = 0; // 初次斷訊時重置計數
+				freezeThisCamera();
             }
-        }, 2000);
+        }, 6000);
 
-        // ? 背景每 30 秒默默嘗試重連機制
+        // ? 背景每 8 秒默默重連機制
         setInterval(function() {
             // 同時滿足兩個條件：1. 必須是斷訊狀態 (isFrozen) 2. 必須在目前的視窗範圍內 (data-in-view === 'true')
             const isInView = box.getAttribute('data-in-view') === 'true';
             
-            if (isFrozen && isInView) {
-                const testImg = new Image();
-                testImg.onload = function() {
-                    // 如果後台連線成功，代表訊號回來了，重啟這張卡片
-                    isFrozen = false;
-                    box.classList.remove('box-frozen');
-                    titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
-                    img.style.display = 'block';
-                    img.src = item.src + '&refresh=' + new Date().getTime();
-                    lastUpdate = Date.now();
-                };
-                testImg.src = item.src + '&test=' + new Date().getTime();
+            if (isInView) {
+				Refresh();
             }
         }, 8000);
     });
 
-    // ? 2. 核心新增：為右上角浮動按鈕綁定「點擊事件」
-    document.getElementById('globalRefreshBtn').addEventListener('click', function() {
-        // 讓按鈕本身轉動一下，增加視覺特效
-        this.style.transform = 'rotate(360deg)';
-        setTimeout(() => { this.style.transform = 'none'; }, 500);
+	// ? 2. 右上角浮動按鈕：點擊時強制刷新全站，並立即優先重連當前畫面中的斷訊影像
+	document.getElementById('globalRefreshBtn').addEventListener('click', function() {
+		// 按鈕旋轉特效
+		this.style.transform = 'rotate(360deg)';
+		setTimeout(() => { this.style.transform = 'none'; }, 500);
 
-        // 呼叫陣列裡所有格子的刷新控制器，一鍵全面復活所有攝影機
-        cameraControllers.forEach(refreshFunc => {
-            refreshFunc();
-        });
-    });
+		// 1. 先對目前畫面上「已斷訊」的攝影機發起立即重連測試
+		cameraControllers.forEach(ctrl => {
+			ctrl.refreshIfFrozen();
+		});
+
+		// 2. 執行全域強制重置（刷新所有攝影機串流）
+		cameraControllers.forEach(ctrl => {
+			ctrl.forceReset();
+		});
+	});
+	
+// ? 當滑動停止時，更新左上角浮動視窗顯示頁面百分比與當前影片 Title
+	(function() {
+		let scrollTimeout = null;
+		let hideTimeout = null;
+		const badge = document.getElementById('scrollPercentBadge');
+
+		// 取得目前視窗範圍內最靠近頂部的影片標題
+		function getTopVisibleTitle() {
+			const boxes = document.querySelectorAll('.cctv-box');
+			let topTitle = '';
+			let minTopDifference = Infinity;
+
+			boxes.forEach(box => {
+				// 確保該卡片有內容且非隱藏
+				if (box.style.visibility === 'hidden') return;
+
+				const rect = box.getBoundingClientRect();
+				// 判斷卡片是否在可視區塊內（底部在視窗頂部以下，且頂部在視窗底部以上）
+				if (rect.bottom > 0 && rect.top < window.innerHeight) {
+					// 尋找距離頂部（0px）最近的卡片
+					const diff = Math.abs(rect.top);
+					if (diff < minTopDifference) {
+						minTopDifference = diff;
+						const titleEl = box.querySelector('.cctv-title');
+						if (titleEl) {
+							// 提取標題文字並移除換行符號（將換行替換為空格）
+							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
+						}
+					}
+				}
+			});
+
+			return topTitle;
+		}
+
+		window.addEventListener('scroll', function() {
+			// 滑動過程中隱藏或準備更新
+			if (scrollTimeout !== null) {
+				clearTimeout(scrollTimeout);
+			}
+			if (hideTimeout !== null) {
+				clearTimeout(hideTimeout);
+			}
+
+			// 停止滑動 200 毫秒後計算百分比與當前影片標題並顯示浮動視窗
+			scrollTimeout = setTimeout(function() {
+				const scrollTop = window.scrollY || document.documentElement.scrollTop;
+				const scrollHeight = document.documentElement.scrollHeight;
+				const clientHeight = document.documentElement.clientHeight;
+
+				const totalScrollable = scrollHeight - clientHeight;
+				let scrollPercent = 0;
+
+				if (totalScrollable > 0) {
+					scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
+				}
+
+				const currentTitle = getTopVisibleTitle();
+				// 組合成文字：位置 % + 當前標題（若有標題則補上分隔線）
+				const displayText = currentTitle 
+					? `${currentTitle} | ${scrollPercent}%`
+					: `位置：${scrollPercent}%`;
+
+				// 更新內容並顯示
+				badge.innerText = displayText;
+				badge.classList.add('show');
+
+				// ? 2. 核心新增：當滾輪停止時，對目前可視視窗內「已斷訊」的圖像觸發重連機制
+				cameraControllers.forEach(ctrl => {
+					ctrl.refreshIfFrozen();
+				});
+
+				// 顯示 2.5 秒後自動淡出隱藏
+				hideTimeout = setTimeout(function() {
+					badge.classList.remove('show');
+				}, 2500);
+
+			}, 200); // 200 毫秒無滑動動作判定為停止
+		});
+	})();
 </script>
 
 </body>
