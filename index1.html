@@ -252,6 +252,7 @@
 
         let lastUpdate = Date.now();
         let isFrozen = false;
+		let retryCount = 0; // 💡 每個卡片各自獨立的重試計數器
 
         // 💡 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
         img.onload = function() {
@@ -289,6 +290,7 @@
         // 💡 提供一個公開的刷新管道給外部按鈕呼叫
         function forceResetAndRefresh() {
             isFrozen = false;
+			retryCount = 0; // 手動刷新時重置計數
             box.classList.remove('box-frozen');
             titleDiv.innerHTML = formatTitle(item.title);
             img.style.display = 'block';
@@ -304,7 +306,8 @@
         // 我們每 4 秒檢查一次，如果該格子超過 4 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
         setInterval(function() {
             if (!isFrozen && (Date.now() - lastUpdate > 4000)) {
-                freezeThisCamera();
+                retryCount = 0; // 初次斷訊時重置計數
+				freezeThisCamera();
             }
         }, 2000);
 
@@ -316,13 +319,21 @@
             if (isFrozen && isInView) {
                 const testImg = new Image();
                 testImg.onload = function() {
-                    // 如果後台連線成功，代表訊號回來了，重啟這張卡片
-                    isFrozen = false;
-                    box.classList.remove('box-frozen');
-                    titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
-                    img.style.display = 'block';
-                    img.src = item.src + '&refresh=' + new Date().getTime();
-                    lastUpdate = Date.now();
+                    // 只有真實拿到影像才解除斷訊
+                    if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
+						isFrozen = false;
+						retryCount = 0; // 成功連線，歸零計數
+						box.classList.remove('box-frozen');
+						titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
+						img.style.display = 'block';
+						img.src = item.src + '&refresh=' + new Date().getTime();
+						lastUpdate = Date.now();
+					}
+                };
+				// 測試失敗時，僅累加此攝影機自己的 retryCount
+                testImg.onerror = function() {
+                    retryCount++;
+                    titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
                 };
                 testImg.src = item.src + '&test=' + new Date().getTime();
             }
