@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS 座標定位定位系統</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+
+    /* 按鈕樣式 */
+    .btn-open {
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .btn-open:hover {
+      background-color: #0056b3;
+    }
+
+    /* Popup (Dialog) 樣式 */
+    dialog {
+      border: none;
+      border-radius: 12px;
+      padding: 24px;
+      width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .dialog-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    .info-box {
+      background-color: #eef2f7;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #444;
+    }
+
+    .btn-close {
+      padding: 8px 16px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-close:hover {
+      background-color: #a71d2a;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="btn-open" id="openBtn">開啟 GPS 監控 Popup</button>
+
+  <!-- Popup 浮動視窗 -->
+  <dialog id="gpsDialog">
+    <div class="dialog-header">📍 當前 GPS 座標</div>
+    <div class="info-box" id="gpsInfo">
+      定位中，請稍候...
+    </div>
+    <button class="btn-close" id="closeBtn">關閉</button>
+  </dialog>
+
+  <script>
+    const gpsDialog = document.getElementById('gpsDialog');
+    const openBtn = document.getElementById('openBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const gpsInfo = document.getElementById('gpsInfo');
+
+    let updateTimer = null;
+
+    // 取得 GPS 座標的函式
+    function fetchLocation() {
+      if (!navigator.geolocation) {
+        gpsInfo.innerHTML = '您的瀏覽器不支援 Geolocation API';
+        return;
+      }
+
+      // 高精度設定
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lng = position.coords.longitude.toFixed(6);
+          const time = new Date().toLocaleTimeString();
+
+          gpsInfo.innerHTML = `
+            <strong>緯度 (Lat):</strong> ${lat}<br>
+            <strong>經度 (Lng):</strong> ${lng}<br>
+            <small style="color: #666;">更新時間: ${time}</small>
+          `;
+        },
+        (error) => {
+          let errorMsg = '無法取得定位';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMsg = '使用者拒絕存取定位權限';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = '無法取得定位資訊';
+              break;
+            case error.TIMEOUT:
+              errorMsg = '定位請求逾時';
+              break;
+          }
+          gpsInfo.innerHTML = `<span style="color: red;">${errorMsg}</span>`;
+        },
+        options
+      );
+    }
+
+    // 開啟 Popup 並啟動每 30 秒更新
+    openBtn.addEventListener('click', () => {
+      gpsDialog.showModal(); // 顯示 Modal 浮動視窗
+      fetchLocation();       // 開啟時立即取得一次座標
+
+      // 每 30000 毫秒 (30秒) 執行一次
+      updateTimer = setInterval(fetchLocation, 30000);
+    });
+
+    // 關閉 Popup 並停止計時器 (節省效能與電量)
+    closeBtn.addEventListener('click', () => {
+      gpsDialog.close();
+      if (updateTimer) {
+        clearInterval(updateTimer); // 停止定時更新
+        updateTimer = null;
+      }
+    });
+  </script>
+</body>
+</html>
