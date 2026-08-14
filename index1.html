@@ -109,13 +109,13 @@
             transform: scale(0.95);
         }
 
-        /* 💡 新增：GPS 浮動開關樣式 (擺放於重新整理按鈕下方) */
+        /* 💡 GPS 浮動開關樣式：已改至左下角 */
         .floating-gps-btn {
             position: fixed;
-            top: 60px;       /* 距離頂部 60px */
-            right: 10px;     /* 距離右側 10px */
-            width: 40px;
-            height: 40px;
+            bottom: 20px;    /* 距離底部 20px */
+            left: 10px;      /* 距離左側 10px */
+            width: 48px;     /* 稍微加大方便左下角觸控 */
+            height: 48px;
             background-color: #fbc02d; /* 預設關閉：黃色 */
             color: #333;
             border-radius: 50%;
@@ -125,7 +125,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 22px;
+            font-size: 26px;
             transition: background-color 0.3s ease, transform 0.2s ease;
             user-select: none;
         }
@@ -182,9 +182,8 @@
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
-<!-- 💡 浮動按鈕區 -->
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
-<!-- 💡 新增：GPS 浮動開關按鈕 (預設黃色) -->
+<!-- 💡 左下角 GPS 浮動開關按鈕 (預設黃色) -->
 <div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
 
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
@@ -266,7 +265,6 @@
     cctvData.forEach((item, index) => {
         const box = document.createElement('div');
         box.className = 'cctv-box';
-		// 綁定 data-index 以利 GPS 自動定位時查找 DOM 節點
 		box.setAttribute('data-index', index);
 		
 		if (!item.title && !item.src) {
@@ -421,11 +419,10 @@
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
         let gpsTimer = null;
-        let lastCoords = null; // 記錄上一秒/上次的座標 { lat, lon }
+        let lastCoords = null;
 
-        // 1. Haversine 距離計算公式 (回傳單位：公里)
         function getDistanceKm(lat1, lon1, lat2, lon2) {
-            const R = 6371; // 地球半徑 (km)
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -435,7 +432,6 @@
             return R * c;
         }
 
-        // 2. 計算兩點間的方位角 Bearing (0° ~ 360°)
         function getBearing(lat1, lon1, lat2, lon2) {
             const phi1 = lat1 * Math.PI / 180;
             const phi2 = lat2 * Math.PI / 180;
@@ -445,12 +441,10 @@
             const x = Math.cos(phi1) * Math.sin(phi2) -
                       Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
             let brng = Math.atan2(y, x) * 180 / Math.PI;
-            return (brng + 360) % 360; // 轉為 0 ~ 360 正角
+            return (brng + 360) % 360;
         }
 
-        // 3. 根據方位角更新浮動按鈕圖示
         function updateArrowIcon(lat1, lon1, lat2, lon2) {
-            // 移動距離小於 5 公尺視為原地靜止，不切換箭頭
             const dist = getDistanceKm(lat1, lon1, lat2, lon2);
             if (dist < 0.005) {
                 gpsBtn.innerText = '🧭';
@@ -458,19 +452,17 @@
             }
 
             const bearing = getBearing(lat1, lon1, lat2, lon2);
-            // 東: 45°~135° (➡️), 南: 135°~225° (⬇️), 西: 225°~315° (⬅️), 北: 315°~45° (⬆️)
             if (bearing >= 45 && bearing < 135) {
-                gpsBtn.innerText = '➡️'; // 東
+                gpsBtn.innerText = '➡️';
             } else if (bearing >= 135 && bearing < 225) {
-                gpsBtn.innerText = '⬇️'; // 南
+                gpsBtn.innerText = '⬇️';
             } else if (bearing >= 225 && bearing < 315) {
-                gpsBtn.innerText = '⬅️'; // 西
+                gpsBtn.innerText = '⬅️';
             } else {
-                gpsBtn.innerText = '⬆️'; // 北
+                gpsBtn.innerText = '⬆️';
             }
         }
 
-        // 4. 比對 GPS 座標並自動捲動頁面
         function trackAndScroll() {
             if (!navigator.geolocation) {
                 alert('您的瀏覽器不支援 GPS 地理定位功能');
@@ -483,13 +475,11 @@
                     const currentLat = position.coords.latitude;
                     const currentLon = position.coords.longitude;
 
-                    // 若已有上次紀錄，計算方向並顯示對應箭頭
                     if (lastCoords) {
                         updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
                     }
                     lastCoords = { lat: currentLat, lon: currentLon };
 
-                    // 尋找 cctvData 中距離最近的鏡頭
                     let minDistance = Infinity;
                     let closestIndex = -1;
 
@@ -502,7 +492,6 @@
                         }
                     });
 
-                    // 自動滑動到最接近的卡片
                     if (closestIndex !== -1) {
                         const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
                         if (targetBox) {
@@ -523,15 +512,15 @@
 
         function startGps() {
             isGpsActive = true;
-            gpsBtn.classList.add('active'); // 變綠色
+            gpsBtn.classList.add('active');
             gpsBtn.innerText = '🧭';
-            trackAndScroll(); // 立即執行第一次
-            gpsTimer = setInterval(trackAndScroll, 3000); // 每 3 秒比對一次
+            trackAndScroll();
+            gpsTimer = setInterval(trackAndScroll, 3000);
         }
 
         function stopGps() {
             isGpsActive = false;
-            gpsBtn.classList.remove('active'); // 變黃色
+            gpsBtn.classList.remove('active');
             gpsBtn.innerText = '🧭';
             if (gpsTimer) {
                 clearInterval(gpsTimer);
@@ -540,7 +529,6 @@
             lastCoords = null;
         }
 
-        // 按鈕點擊切換開關
         gpsBtn.addEventListener('click', function() {
             if (isGpsActive) {
                 stopGps();
