@@ -139,9 +139,25 @@
 			opacity: 1;
 			transform: translateY(0);
 		}		
+
+        /* ? 新增：右側 20% 區域的隱藏百分比控制條 */
+        .right-scroll-zone {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 10%;
+            height: 100vh;
+            z-index: 9990; /* 低於浮動按鈕與 Badge */
+            background: transparent;
+            touch-action: none; /* 防止滑動時瀏覽器預設頁面下拉拉伸 */
+            cursor: ns-resize;
+        }
     </style>
 </head>
 <body>
+<!-- ? 右側 20% 絕對比例隱藏滑動區域 -->
+<div id="rightScrollZone" class="right-scroll-zone"></div>
+
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 <!-- 💡 浮動刷新按鈕：內部使用 🔄 符號 -->
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
@@ -155,54 +171,53 @@
 
 <script>
     const cctvData = [
-        { title: "48K+595 南\n桃園交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850", link: "https://www.twipcam.com/cam/n1b-s-48k-595" },
-        { title: "49K+493 北\n桃園交流道高架", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940", link: "https://www.twipcam.com/cam/n1b-n-49k-493" },
-		
-		
-        { title: "50K+022 南\n蘆興南路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000", link: "https://www.twipcam.com/cam/n1b-s-50k-022" },
-        { title: "50K+571 北\n蘆興南路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050", link: "https://www.twipcam.com/cam/n1b-n-50K-571" },
+		{ title: "48K+595 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850", link: "https://www.twipcam.com/cam/n1b-s-48k-595", lon: "121.300821488545", lat: "25.0401041086768" },
+		{ title: "49K+493 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940", link: "https://www.twipcam.com/cam/n1b-n-49k-493", lon: "121.294226712553", lat: "25.0352555074755" },
 
-        { title: "51K+380 南\n機場交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15130", link: "https://www.twipcam.com/cam/n1-s-51k-380" },
-        { title: "51K+766 北\n機場交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15170", link: "https://www.twipcam.com/cam/n1b-n-51K-766" },
+		{ title: "50K+022 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000", link: "https://www.twipcam.com/cam/n1b-s-50k-022", lon: "121.289553301938", lat: "25.032948145601" },
+		{ title: "50K+571 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050", link: "https://www.twipcam.com/cam/n1b-n-50k-571", lon: "121.285273543452", lat: "25.0287984974398" },
 
-        { title: "53K+710 南\n中壢休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15370", link: "https://www.twipcam.com/cam/n1b-s-53K-710" },
-        { title: "54K+323 北\n中壢休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15430", link: "https://www.twipcam.com/cam/n1b-n-54K-323" },
+		{ title: "51K+380 南\n桃園-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15130", link: "https://www.twipcam.com/cam/n1-s-51k-380", lon: "121.280146644244", lat: "25.0247373473685" },
+		{ title: "51K+766 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15170", link: "https://www.twipcam.com/cam/n1b-n-51k-766", lon: "121.277393098253", lat: "25.0217973053596" },
 
-        { title: "56K+770 南\n內壢交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15670", link: "https://www.twipcam.com/cam/n1b-s-56K-770" },
-        { title: "56K+585 北\n內壢交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15650", link: "https://www.twipcam.com/cam/n1b-n-56K-585" },
+		{ title: "53K+710 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15370", link: "https://www.twipcam.com/cam/n1b-s-53k-710", lon: "121.262466180474", lat: "25.0105904209109" },
+		{ title: "54K+323 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15430", link: "https://www.twipcam.com/cam/n1b-n-54k-323", lon: "121.258346440082", lat: "25.0066508171917" },
 
-        { title: "58K+793 南\n中壢轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15871", link: "https://www.twipcam.com/cam/n1b-s-58K-793" },
-        { title: "58K+783 北\n中壢轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15870", link: "https://www.twipcam.com/cam/n1b-n-58K-783" },
+		{ title: "56K+770 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15670", link: "https://www.twipcam.com/cam/n1b-s-56k-770", lon: "121.240349780017", lat: "24.9917357477833" },
+		{ title: "56K+585 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15650", link: "https://www.twipcam.com/cam/n1b-n-56k-585", lon: "121.242087867078", lat: "24.9927675170176" },
 
-        { title: "65K+024 南\n平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16501", link: "https://www.twipcam.com/cam/n1b-s-65K-024" },
-        { title: "65K+500 北\n平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16550", link: "https://www.twipcam.com/cam/n1b-n-65K-500" },
+		{ title: "58K+793 南\n中壢轉接一-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15871", link: "https://www.twipcam.com/cam/n1b-s-58k-793", lon: "121.226285290564", lat: "24.9785708842224" },
+		{ title: "58K+783 北\n中豐-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15870", link: "https://www.twipcam.com/cam/n1b-n-58k-783", lon: "121.22675454812", lat: "24.9785600673766" },
 
-        { title: "67K+000 南\n幻獅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16700", link: "https://www.twipcam.com/cam/n1b-s-67K-000" },
-        { title: "67K+000 北\n幻獅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16701", link: "https://www.twipcam.com/cam/n1b-n-67K-000" },
-		
-        { title: "68K+340 南\n楊梅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16830", link: "https://www.twipcam.com/cam/n1b-s-68K-340" },
-        { title: "69K+500 北\n楊梅交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16950", link: "https://www.twipcam.com/cam/n1b-n-69K-500" },
+		{ title: "65K+024 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16501", link: "https://www.twipcam.com/cam/n1b-s-65k-024", lon: "121.188936607445", lat: "24.935966920739" },
+		{ title: "65K+000 北\n幼獅-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16500", link: "https://www.twipcam.com/cam/n1-n-65k-000", lon: "121.190265264309", lat: "24.9353678965988" },
 
-        { title: "70K+500 南\n校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17051", link: "https://www.twipcam.com/cam/n1b-s-70K-500" },
-        { title: "70K+900 北\n校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17090", link: "https://www.twipcam.com/cam/n1b-n-70K-900" },
+		{ title: "67K+000 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16700", link: "https://www.twipcam.com/cam/n1b-s-67k-000", lon: "121.171993043748", lat: "24.9264459978317" },
+		{ title: "67K+000 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16701", link: "https://www.twipcam.com/cam/n1b-n-67k-000", lon: "121.173668103468", lat: "24.9270314681164" },
 
-        { title: "71K+400 南\n楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17140", link: "https://www.twipcam.com/cam/n1b-s-71K-400" },
-        { title: "71K+900 北\n楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17190", link: "https://www.twipcam.com/cam/n1-n-71K-900" },
-		
-        { title: "82K+020 南\n湖口交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18200", link: "https://www.twipcam.com/cam/n1-s-82K-020" },
-        { title: "81K+100 北\n高鐵段", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18110", link: "https://www.twipcam.com/cam/n1-n-81K-100" },
+		{ title: "68K+340 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16830", link: "https://www.twipcam.com/cam/n1b-s-68k-340", lon: "121.16668857435", lat: "24.9161386099624" },
+		{ title: "69K+500 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16950", link: "https://www.twipcam.com/cam/n1b-n-69k-500", lon: "121.16309866276", lat: "24.9058457236362" },
 
-        { title: "86K+090 南\n湖口服務區 入口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18602", link: "https://www.twipcam.com/cam/n1-s-86K-090" },
-        { title: "86K+000 北\n湖口服務區 內", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18601", link: "https://www.twipcam.com/cam/n1-n-86K-000" },
-		
-        { title: "87K+050 南\n湖口服務區 出口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18700", link: "https://www.twipcam.com/cam/n1-s-87K-050" },
-        { title: "87K+490 北\n湖口服務區 入口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18740", link: "https://www.twipcam.com/cam/n1-n-87K-490" },
+		{ title: "70K+500 南\n校前路-楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17051", link: "https://www.twipcam.com/cam/n1b-s-70k-500", lon: "121.154533208497", lat: "24.9014343354432" },
+		{ title: "70K+150 北\n高架楊梅端-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17010", link: "https://www.twipcam.com/cam/n1-n-70k-150", lon: "121.158208487916", lat: "24.9022932658399" },
 
-        { title: "88K+590 南\n湖口 竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18850", link: "https://www.twipcam.com/cam/n1-s-88k-590" },
-        { title: "90K+010 北\n竹北 湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19000", link: "https://www.twipcam.com/cam/n1-n-90k-010" },
+		{ title: "71K+400 南\n楊梅端-楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17140", link: "https://www.twipcam.com/cam/n1b-s-71k-000", lon: "121.146301302019", lat: "24.8993930000157" },
+		{ title: "71K+900 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17190", link: "https://www.twipcam.com/cam/n1-n-71k-900", lon: "121.141641488837", lat: "24.8976722866542" },
 
-        { title: "91K+000 南\n竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19100", link: "https://www.twipcam.com/cam/n1-s-91K-000" },
-        { title: "90K+470 北\n竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90K-470" },
+		{ title: "82K+020 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18200", link: "https://www.twipcam.com/cam/n1-s-82k-020", lon: "121.046711934978", lat: "24.8767808282936" },
+		{ title: "81K+100 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18110", link: "https://www.twipcam.com/cam/n1-n-81k-100", lon: "121.055774013345", lat: "24.8759695587227" },
+
+		{ title: "86K+090 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18602", link: "https://www.twipcam.com/cam/n1-s-86k-090", lon: "121.011854665565", lat: "24.8634589320427" },
+		{ title: "86K+000 北\n湖口服務區-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18600", link: "https://www.twipcam.com/cam/n1-n-86k-000", lon: "121.011851100303", lat: "24.8622701293522" },
+
+		{ title: "87K+050 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18700", link: "https://www.twipcam.com/cam/n1-s-87k-050", lon: "121.011719192066", lat: "24.854909184886" },
+		{ title: "87K+490 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18740", link: "https://www.twipcam.com/cam/n1-n-87k-490", lon: "121.015000084042", lat: "24.8521077730511" },
+
+		{ title: "88K+590 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18850", link: "https://www.twipcam.com/cam/n1-s-88k-590", lon: "121.021456868119", lat: "24.8446587382532" },
+		{ title: "90K+010 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19000", link: "https://www.twipcam.com/cam/n1-n-90k-010", lon: "121.021577411746", lat: "24.8320935956756" },
+
+		{ title: "91K+000 南\n竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19100", link: "https://www.twipcam.com/cam/n1-s-91k-000", lon: "121.017210341628", lat: "24.8238499411533" },
+		{ title: "90K+470 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90k-470", lon: "121.020098043065", lat: "24.8282095863834" },
 		
     ];
 
@@ -481,6 +496,60 @@
 			}, 2500);
 		});
 	})();
+
+    // ? 核心：右側 20% 區域點擊/拖曳計算絕對垂直比例 (0% ~ 100%)
+    (function() {
+        const zone = document.getElementById('rightScrollZone');
+        let isInteracting = false;
+
+        // 計算點擊/觸控位置佔視窗高度的比例，並捲動到對應位置
+        function scrollToYRatio(clientY) {
+            const viewportHeight = window.innerHeight;
+            // 限制 Y 軸座標在 0 到視窗高度之間
+            const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
+            const ratio = clampedY / viewportHeight; // 0.0 ~ 1.0 (0% ~ 100%)
+
+            // 計算頁面最大可滾動距離
+            const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
+            if (totalScrollable > 0) {
+                const targetScrollTop = totalScrollable * ratio;
+                window.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'auto' // 即時跟隨拖曳/點擊
+                });
+            }
+        }
+
+        // --- 1. 觸控事件 (手機/平板) ---
+        zone.addEventListener('touchstart', function(e) {
+            isInteracting = true;
+            scrollToYRatio(e.touches[0].clientY);
+        }, { passive: true });
+
+        zone.addEventListener('touchmove', function(e) {
+            if (!isInteracting) return;
+            scrollToYRatio(e.touches[0].clientY);
+        }, { passive: true });
+
+        zone.addEventListener('touchend', function() {
+            isInteracting = false;
+        });
+
+        // --- 2. 滑鼠事件 (電腦版) ---
+        zone.addEventListener('mousedown', function(e) {
+            isInteracting = true;
+            scrollToYRatio(e.clientY);
+        });
+
+        window.addEventListener('mousemove', function(e) {
+            if (!isInteracting) return;
+            scrollToYRatio(e.clientY);
+        });
+
+        window.addEventListener('mouseup', function() {
+            isInteracting = false;
+        });
+    })();
 
 </script>
 
