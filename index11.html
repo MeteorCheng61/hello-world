@@ -573,6 +573,7 @@
 	});
 
     // ? ----------------- GPS 浮動開關與定位邏輯 -----------------
+    let resetGpsTimer = null;
     (function() {
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
@@ -687,6 +688,14 @@
             lastCoords = null;
         }
 
+        resetGpsTimer = function() {
+            if (!isGpsActive) return;
+            if (gpsTimer) {
+                clearInterval(gpsTimer);
+            }
+            gpsTimer = setInterval(trackAndScroll, 10000);
+        };
+
         gpsBtn.addEventListener('click', function() {
             if (isGpsActive) {
                 stopGps();
@@ -750,6 +759,11 @@
 
 		window.addEventListener('scroll', function() {
 			updateBadge();
+
+			// 當發生 scroll 事件時，若 GPS 定位正在執行，則重新開始計時
+			if (typeof resetGpsTimer === 'function') {
+				resetGpsTimer();
+			}
 
 			if (hideTimeout !== null) clearTimeout(hideTimeout);
 			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
