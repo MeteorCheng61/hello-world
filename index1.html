@@ -253,12 +253,23 @@
         threshold: 0.1
     };
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            const box = entry.target;
-            box.setAttribute('data-in-view', entry.isIntersecting);
-        });
-    }, observerOptions);
+	const observer = new IntersectionObserver((entries) => {
+		entries.forEach(entry => {
+			const box = entry.target;
+			const wasInView = box.getAttribute('data-in-view') === 'true';
+			const isInView = entry.isIntersecting;
+			
+			box.setAttribute('data-in-view', isInView);
+
+			// 💡 新增：當從看不到變成看得見，且尚未載入或已凍結時，立即觸發載入
+			if (isInView && !wasInView) {
+				const index = box.getAttribute('data-index');
+				if (cameraControllers[index]) {
+					cameraControllers[index].forceReset(); // 進入畫面時立刻載入影像
+				}
+			}
+		});
+	}, observerOptions);
 
     const cameraControllers = [];
 
