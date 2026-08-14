@@ -45,10 +45,9 @@
             overflow: hidden;
             text-overflow: ellipsis;
 			text-align: center;
-            cursor: pointer; /* 💡 僅標題顯示點擊手指 */
+            cursor: pointer;
             transition: background-color 0.2s ease, color 0.2s ease;
         }
-        /* 💡 懸浮特效：滑鼠移到標題時，標題背景變深、文字變成綠色提示可點擊 */
         .cctv-title:hover {
             background-color: #e8f5e9;
             color: #2e7d32;
@@ -60,7 +59,6 @@
             aspect-ratio: 352 / 240;
             background: #000;
         }
-        /* 預設顯示原始 img 串流，避免跨域問題 */
         .cctv-img {
             width: 100%;
             height: 100%;
@@ -71,7 +69,6 @@
             left: 0;
             z-index: 2;
         }
-        /* Canvas 在底下待命，隨時準備接手最後一幀 */
         .cctv-canvas {
             width: 100%;
             height: 100%;
@@ -82,23 +79,21 @@
             left: 0;
             z-index: 1;
         }
-        /* 💡 斷訊時的 CSS 提示：讓整個方塊變暗變灰 */
         .box-frozen {
             filter: grayscale(40%) brightness(90%);
         }
-        /* 💡 核心新增：右上角固定浮動重新整理按鈕樣式 */
         .floating-refresh-btn {
             position: fixed;
-            top: 10px;       /* 距離頂部 20px */
-            right: 10px;     /* 距離右側 20px */
+            top: 10px;
+            right: 10px;
             width: 40px;
             height: 40px;
-            background-color: #1b5e20; /* 國道綠色色調 */
+            background-color: #1b5e20;
             color: white;
-            border-radius: 50%; /* 圓形按鈕 */
+            border-radius: 50%;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             cursor: pointer;
-            z-index: 9999;     /* 確保永遠疊在所有影片的最上層 */
+            z-index: 9999;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -106,17 +101,15 @@
             transition: background-color 0.2s ease, transform 0.2s ease;
             user-select: none;
         }
-        /* 滑鼠懸停效果：變亮並輕微放大 */
         .floating-refresh-btn:hover {
             background-color: #2e7d32;
             transform: scale(1.08);
         }
-        /* 點擊時的下壓動效 */
         .floating-refresh-btn:active {
             transform: scale(0.95);
         }
 
-        /* ? GPS 浮動開關樣式：已改至左下角 */
+        /* 💡 GPS 浮動開關樣式：已改至左下角 */
         .floating-gps-btn {
             position: fixed;
             bottom: 20px;    /* 距離底部 20px */
@@ -148,12 +141,11 @@
             transform: scale(0.95);
         }
 
-		/* 💡 左上角頁面位置百分比浮動視窗 */
 		.scroll-percent-badge {
 			position: fixed;
 			top: 10px;
 			left: 10px;
-			background-color: rgba(27, 94, 32, 0.85); /* 半透明國道綠 */
+			background-color: rgba(27, 94, 32, 0.85);
 			color: #ffffff;
 			padding: 6px 12px;
 			border-radius: 20px;
@@ -161,44 +153,39 @@
 			font-weight: bold;
 			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 			z-index: 9999;
-			pointer-events: none; /* 避免干擾滑鼠點擊 */
+			pointer-events: none;
 			transition: opacity 0.3s ease, transform 0.3s ease;
-			opacity: 0;           /* 預設隱藏，滾動停止時顯示 */
+			opacity: 0;
 			transform: translateY(-5px);
 		}
 
-		/* 顯示時的狀態 */
 		.scroll-percent-badge.show {
 			opacity: 1;
 			transform: translateY(0);
 		}		
 
-        /* ? 新增：右側 20% 區域的隱藏百分比控制條 */
         .right-scroll-zone {
             position: fixed;
             top: 0;
             right: 0;
             width: 10%;
             height: 100vh;
-            z-index: 9990; /* 低於浮動按鈕與 Badge */
+            z-index: 9990;
             background: transparent;
-            touch-action: none; /* 防止滑動時瀏覽器預設頁面下拉拉伸 */
+            touch-action: none;
             cursor: ns-resize;
         }
     </style>
 </head>
 <body>
-<!-- ? 右側 20% 絕對比例隱藏滑動區域 -->
 <div id="rightScrollZone" class="right-scroll-zone"></div>
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
-<!-- 💡 浮動刷新按鈕：內部使用 🔄 符號 -->
+
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
+<!-- 💡 左下角 GPS 浮動開關按鈕 (預設黃色) -->
+<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
 
-<!-- ? 左下角 GPS 浮動開關按鈕 (預設黃色) -->
-<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">?</div>
-
-<!-- 💡 左上角百分比浮動視窗 -->
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
 
 <h2>🛣️ 南崁 - 竹北 即時影像</h2>
@@ -253,8 +240,7 @@
 		{ title: "90K+010 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19000", link: "https://www.twipcam.com/cam/n1-n-90k-010", lon: "121.021577411746", lat: "24.8320935956756" },
 
 		{ title: "91K+000 南\n竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19100", link: "https://www.twipcam.com/cam/n1-s-91k-000", lon: "121.017210341628", lat: "24.8238499411533" },
-		{ title: "90K+470 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90k-470", lon: "121.020098043065", lat: "24.8282095863834" },
-		
+		{ title: "90K+470 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90k-470", lon: "121.020098043065", lat: "24.8282095863834" }
     ];
 
     function formatTitle(text) {
@@ -262,22 +248,18 @@
     }
     const container = document.getElementById('cctvGridContainer');
 
-    // 💡 建立交叉觀察器監聽配置
     const observerOptions = {
-        root: null, // null 代表以瀏覽器視窗（viewport）為觀察範圍
-        threshold: 0.1 // 卡片只要露出 10% 以上就視為進入顯示範圍
+        root: null,
+        threshold: 0.1
     };
 
-    // 💡 定義觀察器的行為
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const box = entry.target;
-            // 透過自訂屬性，動態標記這張卡片目前是不是在螢幕範圍內 (true / false)
             box.setAttribute('data-in-view', entry.isIntersecting);
         });
     }, observerOptions);
 
-    // 用來存放所有攝影機控制函式的陣列，方便點擊全局刷新按鈕時統一調用
     const cameraControllers = [];
 
     cctvData.forEach((item, index) => {
@@ -285,23 +267,17 @@
         box.className = 'cctv-box';
 		box.setAttribute('data-index', index);
 		
-		// 💡 處理資料為空的情況：若無 title 與 src，直接生成空白卡片並跳過後續攝影機邏輯
 		if (!item.title && !item.src) {
-			box.style.visibility = 'hidden'; // 隱藏內容但保留空間 (亦可改用 opacity: 0)
-			// 若希望完全不佔據背景邊框，可以取消邊框與背景：
-			// box.style.border = 'none';
-			// box.style.background = 'transparent';
-			// box.style.boxShadow = 'none';
-			
+			box.style.visibility = 'hidden';
 			container.appendChild(box);
-			return; // 結束本次迴圈，不執行監聽與圖片載入
+			return;
 		}
 		
         box.setAttribute('data-in-view', 'false');
 
         const titleDiv = document.createElement('div');
         titleDiv.className = 'cctv-title';
-        titleDiv.innerHTML = formatTitle(item.title); // 💡 套用 \n 轉換
+        titleDiv.innerHTML = formatTitle(item.title);
 
         titleDiv.addEventListener('click', function() {
             window.open(item.link, '_blank');
@@ -310,12 +286,10 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'video-wrapper';
 
-        // 1. 建立真實的 img 標籤 (負責正常播放，避開 CORS 問題)
         const img = document.createElement('img');
         img.className = 'cctv-img';
         img.src = item.src;
 
-        // 2. 建立待命的 Canvas (負責斷電凍結畫面)
         const canvas = document.createElement('canvas');
         canvas.className = 'cctv-canvas';
         const ctx = canvas.getContext('2d');
@@ -326,32 +300,25 @@
         box.appendChild(wrapper);
         container.appendChild(box);
 
-        // 💡 讓觀察器開始追蹤這個卡片元素
         observer.observe(box);
 
         let lastUpdate = Date.now();
         let isFrozen = false;
-		let retryCount = 0; // 💡 每個卡片各自獨立的重試計數器
+		let retryCount = 0;
 
-        // 💡 解決核心：活體監測機制。MJPEG 串流正常運作時，會源源不絕地觸發 onload
         img.onload = function() {
             if (isFrozen) return;
-            lastUpdate = Date.now(); // 刷新最後收到的影格時間
+            lastUpdate = Date.now();
             
 			if (img.naturalWidth && img.naturalHeight) {
 				canvas.width = img.naturalWidth;
 				canvas.height = img.naturalHeight;
 			}
-            // 嘗試在背景把當前影格記錄到 Canvas 當作備份副本
             try {
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            } catch (e) {
-                // 由於跨域限制，drawImage 會在控制台跳錯誤，但「最後畫面依然會成功留在畫布上」
-                // 這是利用瀏覽器渲染引擎的特性，即使 tainted canvas 無法導出(toDataURL)，但繪製畫面上仍有效
-            }
+            } catch (e) {}
         };
 
-        // 💡 如果網路直接報錯 (例如 404/502)
         img.onerror = function() {
             freezeThisCamera();
         };
@@ -360,23 +327,19 @@
             if (isFrozen) return;
             isFrozen = true;
             box.classList.add('box-frozen');
-			
-            // 💡 斷訊時，保留原本用 \n 分開的兩行，並在右側或尾端補上紅色狀態字樣
             titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
-            img.style.display = 'none'; // 隱藏變成黑畫面的 img，讓地下的 Canvas 最後畫面露出來
+            img.style.display = 'none';
         }
 
         let ReconnectRequest = false;
 		
-        // 💡 提供一個公開的刷新管道給外部按鈕呼叫
         function forceResetAndRefresh() {
             isFrozen = false;
-			retryCount = 0; // 手動刷新時重置計數
+			retryCount = 0;
 			ReconnectRequest = false;
             box.classList.remove('box-frozen');
             titleDiv.innerHTML = formatTitle(item.title);
             img.style.display = 'block';
-            // 強制加上最新時間戳，使瀏覽器清空緩存，向高公局發送全新連線
             lastUpdate = Date.now();
             img.src = item.src + '&forceRefresh=' + lastUpdate;
         }
@@ -386,27 +349,24 @@
 			ReconnectRequest = true;
 			const testImg = new Image();
 
-			// 設定 timeout 避免 iOS 請求永遠卡在 pending
 			const timer = setTimeout(() => {
-				testImg.src = ""; // 中止請求
-				ReconnectRequest = false; // 🔓 逾時解鎖
+				testImg.src = "";
+				ReconnectRequest = false;
 			}, 5000);
 
 			testImg.onload = function() {
 				clearTimeout(timer);
-				// 只有真實拿到影像才解除斷訊
 				if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
 					isFrozen = false;
-					retryCount = 0; // 成功連線，歸零計數
+					retryCount = 0;
 					box.classList.remove('box-frozen');
-					titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
+					titleDiv.innerHTML = formatTitle(item.title);
 					img.style.display = 'block';
 					img.src = item.src + '&refresh=' + new Date().getTime();
 					lastUpdate = Date.now();
 				}
 				ReconnectRequest = false;
 			};
-			// 測試失敗時，僅累加此攝影機自己的 retryCount
 			testImg.onerror = function() {
 				clearTimeout(timer);
 				retryCount++;
@@ -416,7 +376,6 @@
 			testImg.src = item.src + '&test=' + new Date().getTime();
 		}
 		
-        // 將此格子的重置控制權丟到全域陣列中
 		cameraControllers.push({
 			forceReset: forceResetAndRefresh,
 			refreshIfFrozen: function() {
@@ -427,178 +386,35 @@
 			}
 		});
 		
-        // 💡 監控看守狗 (Watchdog)：高公局斷流時常常「不報錯」，而是畫面直接卡死。
-        // 我們每 6 秒檢查一次，如果該格子超過 10 秒都沒有收到新的資料(onload 沒觸發)，就判定為斷訊。
         setInterval(function() {
             if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
-                retryCount = 0; // 初次斷訊時重置計數
+                retryCount = 0;
 				freezeThisCamera();
             }
         }, 6000);
 
-        // 💡 背景每 8 秒默默重連機制
         setInterval(function() {
-            // 同時滿足兩個條件：1. 必須是斷訊狀態 (isFrozen) 2. 必須在目前的視窗範圍內 (data-in-view === 'true')
             const isInView = box.getAttribute('data-in-view') === 'true';
-            
             if (isInView) {
 				Refresh();
             }
         }, 8000);
     });
 
-	// 💡 2. 右上角浮動按鈕：點擊時強制刷新全站，並立即優先重連當前畫面中的斷訊影像
 	document.getElementById('globalRefreshBtn').addEventListener('click', function() {
-		// 按鈕旋轉特效
 		this.style.transform = 'rotate(360deg)';
 		setTimeout(() => { this.style.transform = 'none'; }, 500);
 
-		// 1. 先對目前畫面上「已斷訊」的攝影機發起立即重連測試
 		cameraControllers.forEach(ctrl => {
 			ctrl.refreshIfFrozen();
 		});
 
-		// 2. 執行全域強制重置（刷新所有攝影機串流）
 		cameraControllers.forEach(ctrl => {
 			ctrl.forceReset();
 		});
 	});
-	
-	// 💡 滑動即時顯示頁面百分比與當前影片 Title（滑動停止後自動隱藏）
-	(function() {
-		let hideTimeout = null;
-		let stopScrollTimeout = null;
-		const badge = document.getElementById('scrollPercentBadge');
 
-		// 取得目前視窗範圍內最靠近頂部的影片標題
-		function getTopVisibleTitle() {
-			const boxes = document.querySelectorAll('.cctv-box');
-			let topTitle = '';
-			let minTopDifference = Infinity;
-
-			boxes.forEach(box => {
-				// 確保該卡片有內容且非隱藏
-				if (box.style.visibility === 'hidden') return;
-
-				const rect = box.getBoundingClientRect();
-				// 判斷卡片是否在可視區塊內（底部在視窗頂部以下，且頂部在視窗底部以上）
-				if (rect.bottom > 0 && rect.top < window.innerHeight) {
-					// 尋找距離頂部（0px）最近的卡片
-					const diff = Math.abs(rect.top);
-					if (diff < minTopDifference) {
-						minTopDifference = diff;
-						const titleEl = box.querySelector('.cctv-title');
-						if (titleEl) {
-							// 提取標題文字並移除換行符號（將換行替換為空格）
-							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
-						}
-					}
-				}
-			});
-
-			return topTitle;
-		}
-
-		// 更新顯示內容的主函數
-		function updateBadge() {
-			const scrollTop = window.scrollY || document.documentElement.scrollTop;
-			const scrollHeight = document.documentElement.scrollHeight;
-			const clientHeight = document.documentElement.clientHeight;
-
-			const totalScrollable = scrollHeight - clientHeight;
-			let scrollPercent = 0;
-
-			if (totalScrollable > 0) {
-				scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
-			}
-
-			const currentTitle = getTopVisibleTitle();
-			// 組合成文字：當前標題 | 位置 %
-			const displayText = currentTitle 
-				? `${currentTitle} | ${scrollPercent}%`
-				: `位置：${scrollPercent}%`;
-
-			badge.innerText = displayText;
-			badge.classList.add('show'); // 即時顯示
-		}
-
-		window.addEventListener('scroll', function() {
-			// 1. 滑動過程：即時計算並更新 Badge
-			updateBadge();
-
-			// 2. 重置隱藏與停止判斷計時器
-			if (hideTimeout !== null) clearTimeout(hideTimeout);
-			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
-
-			// 3. 停止滑動 200ms 後：對可視區塊內斷訊的鏡頭發起重連
-			stopScrollTimeout = setTimeout(function() {
-				cameraControllers.forEach(ctrl => {
-					ctrl.refreshIfFrozen();
-				});
-			}, 200);
-
-			// 4. 停止滑動 2.5 秒後：自動淡出隱藏
-			hideTimeout = setTimeout(function() {
-				badge.classList.remove('show');
-			}, 2500);
-		});
-	})();
-
-    // ? 核心：右側 20% 區域點擊/拖曳計算絕對垂直比例 (0% ~ 100%)
-    (function() {
-        const zone = document.getElementById('rightScrollZone');
-        let isInteracting = false;
-
-        // 計算點擊/觸控位置佔視窗高度的比例，並捲動到對應位置
-        function scrollToYRatio(clientY) {
-            const viewportHeight = window.innerHeight;
-            // 限制 Y 軸座標在 0 到視窗高度之間
-            const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
-            const ratio = clampedY / viewportHeight; // 0.0 ~ 1.0 (0% ~ 100%)
-
-            // 計算頁面最大可滾動距離
-            const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
-            if (totalScrollable > 0) {
-                const targetScrollTop = totalScrollable * ratio;
-                window.scrollTo({
-                    top: targetScrollTop,
-                    behavior: 'auto' // 即時跟隨拖曳/點擊
-                });
-            }
-        }
-
-        // --- 1. 觸控事件 (手機/平板) ---
-        zone.addEventListener('touchstart', function(e) {
-            isInteracting = true;
-            scrollToYRatio(e.touches[0].clientY);
-        }, { passive: true });
-
-        zone.addEventListener('touchmove', function(e) {
-            if (!isInteracting) return;
-            scrollToYRatio(e.touches[0].clientY);
-        }, { passive: true });
-
-        zone.addEventListener('touchend', function() {
-            isInteracting = false;
-        });
-
-        // --- 2. 滑鼠事件 (電腦版) ---
-        zone.addEventListener('mousedown', function(e) {
-            isInteracting = true;
-            scrollToYRatio(e.clientY);
-        });
-
-        window.addEventListener('mousemove', function(e) {
-            if (!isInteracting) return;
-            scrollToYRatio(e.clientY);
-        });
-
-        window.addEventListener('mouseup', function() {
-            isInteracting = false;
-        });
-    })();
-
-    // ? ----------------- GPS 浮動開關與定位邏輯 -----------------
+    // 💡 ----------------- GPS 浮動開關與定位邏輯 -----------------
     (function() {
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
@@ -631,7 +447,7 @@
         function updateArrowIcon(lat1, lon1, lat2, lon2) {
             const dist = getDistanceKm(lat1, lon1, lat2, lon2);
             if (dist < 0.005) {
-                gpsBtn.innerText = '?';
+                gpsBtn.innerText = '🧭';
                 return;
             }
 
@@ -697,7 +513,7 @@
         function startGps() {
             isGpsActive = true;
             gpsBtn.classList.add('active');
-            gpsBtn.innerText = '?';
+            gpsBtn.innerText = '🧭';
             trackAndScroll();
             gpsTimer = setInterval(trackAndScroll, 3000);
         }
@@ -705,7 +521,7 @@
         function stopGps() {
             isGpsActive = false;
             gpsBtn.classList.remove('active');
-            gpsBtn.innerText = '?';
+            gpsBtn.innerText = '🧭';
             if (gpsTimer) {
                 clearInterval(gpsTimer);
                 gpsTimer = null;
@@ -723,7 +539,121 @@
     })();
     // -------------------------------------------------------------
 
-</script>
+	(function() {
+		let hideTimeout = null;
+		let stopScrollTimeout = null;
+		const badge = document.getElementById('scrollPercentBadge');
 
+		function getTopVisibleTitle() {
+			const boxes = document.querySelectorAll('.cctv-box');
+			let topTitle = '';
+			let minTopDifference = Infinity;
+
+			boxes.forEach(box => {
+				if (box.style.visibility === 'hidden') return;
+
+				const rect = box.getBoundingClientRect();
+				if (rect.bottom > 0 && rect.top < window.innerHeight) {
+					const diff = Math.abs(rect.top);
+					if (diff < minTopDifference) {
+						minTopDifference = diff;
+						const titleEl = box.querySelector('.cctv-title');
+						if (titleEl) {
+							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
+						}
+					}
+				}
+			});
+
+			return topTitle;
+		}
+
+		function updateBadge() {
+			const scrollTop = window.scrollY || document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight;
+			const clientHeight = document.documentElement.clientHeight;
+
+			const totalScrollable = scrollHeight - clientHeight;
+			let scrollPercent = 0;
+
+			if (totalScrollable > 0) {
+				scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
+			}
+
+			const currentTitle = getTopVisibleTitle();
+			const displayText = currentTitle 
+				? `${currentTitle} | ${scrollPercent}%`
+				: `位置：${scrollPercent}%`;
+
+			badge.innerText = displayText;
+			badge.classList.add('show');
+		}
+
+		window.addEventListener('scroll', function() {
+			updateBadge();
+
+			if (hideTimeout !== null) clearTimeout(hideTimeout);
+			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
+
+			stopScrollTimeout = setTimeout(function() {
+				cameraControllers.forEach(ctrl => {
+					ctrl.refreshIfFrozen();
+				});
+			}, 200);
+
+			hideTimeout = setTimeout(function() {
+				badge.classList.remove('show');
+			}, 2500);
+		});
+	})();
+
+    (function() {
+        const zone = document.getElementById('rightScrollZone');
+        let isInteracting = false;
+
+        function scrollToYRatio(clientY) {
+            const viewportHeight = window.innerHeight;
+            const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
+            const ratio = clampedY / viewportHeight;
+
+            const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
+            if (totalScrollable > 0) {
+                const targetScrollTop = totalScrollable * ratio;
+                window.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'auto'
+                });
+            }
+        }
+
+        zone.addEventListener('touchstart', function(e) {
+            isInteracting = true;
+            scrollToYRatio(e.touches[0].clientY);
+        }, { passive: true });
+
+        zone.addEventListener('touchmove', function(e) {
+            if (!isInteracting) return;
+            scrollToYRatio(e.touches[0].clientY);
+        }, { passive: true });
+
+        zone.addEventListener('touchend', function() {
+            isInteracting = false;
+        });
+
+        zone.addEventListener('mousedown', function(e) {
+            isInteracting = true;
+            scrollToYRatio(e.clientY);
+        });
+
+        window.addEventListener('mousemove', function(e) {
+            if (!isInteracting) return;
+            scrollToYRatio(e.clientY);
+        });
+
+        window.addEventListener('mouseup', function() {
+            isInteracting = false;
+        });
+    })();
+</script>
 </body>
 </html>
