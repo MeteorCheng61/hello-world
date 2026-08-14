@@ -109,7 +109,7 @@
             transform: scale(0.95);
         }
 
-        /* 💡 GPS 浮動開關樣式：已改至左下角 */
+        /* ? GPS 浮動開關樣式：已改至左下角 */
         .floating-gps-btn {
             position: fixed;
             bottom: 20px;    /* 距離底部 20px */
@@ -157,6 +157,8 @@
 			transition: opacity 0.3s ease, transform 0.3s ease;
 			opacity: 0;
 			transform: translateY(-5px);
+			
+			white-space: pre-line;
 		}
 
 		.scroll-percent-badge.show {
@@ -182,13 +184,13 @@
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
-<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
-<!-- 💡 左下角 GPS 浮動開關按鈕 (預設黃色) -->
-<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
+<!-- ? 左下角 GPS 浮動開關按鈕 (預設黃色) -->
+<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">?</div>
 
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
 
-<h2>🛣️ 南崁 - 竹北 即時影像</h2>
+<h2>?️ 南崁 - 竹北 即時影像</h2>
 
 <div id="cctvGridContainer" class="cctv-grid"></div>
 
@@ -570,7 +572,7 @@
 		});
 	});
 
-    // 💡 ----------------- GPS 浮動開關與定位邏輯 -----------------
+    // ? ----------------- GPS 浮動開關與定位邏輯 -----------------
     (function() {
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
@@ -603,7 +605,7 @@
         function updateArrowIcon(lat1, lon1, lat2, lon2) {
             const dist = getDistanceKm(lat1, lon1, lat2, lon2);
             if (dist < 0.005) {
-                gpsBtn.innerText = '🧭';
+                gpsBtn.innerText = '?';
                 return;
             }
 
@@ -669,7 +671,7 @@
         function startGps() {
             isGpsActive = true;
             gpsBtn.classList.add('active');
-            gpsBtn.innerText = '🧭';
+            gpsBtn.innerText = '?';
             trackAndScroll();
             gpsTimer = setInterval(trackAndScroll, 10000);
         }
@@ -677,7 +679,7 @@
         function stopGps() {
             isGpsActive = false;
             gpsBtn.classList.remove('active');
-            gpsBtn.innerText = '🧭';
+            gpsBtn.innerText = '?';
             if (gpsTimer) {
                 clearInterval(gpsTimer);
                 gpsTimer = null;
@@ -715,7 +717,8 @@
 						minTopDifference = diff;
 						const titleEl = box.querySelector('.cctv-title');
 						if (titleEl) {
-							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
+							// topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
+							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').trim();
 						}
 					}
 				}

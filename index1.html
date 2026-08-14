@@ -157,6 +157,8 @@
 			transition: opacity 0.3s ease, transform 0.3s ease;
 			opacity: 0;
 			transform: translateY(-5px);
+			
+			white-space: pre-line;
 		}
 
 		.scroll-percent-badge.show {
@@ -559,7 +561,8 @@
 						minTopDifference = diff;
 						const titleEl = box.querySelector('.cctv-title');
 						if (titleEl) {
-							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
+							// topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').replace(/\n/g, ' ').trim();
+							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').trim();
 						}
 					}
 				}
