@@ -329,44 +329,54 @@
             img.style.display = 'none'; // 隱藏變成黑畫面的 img，讓地下的 Canvas 最後畫面露出來
         }
 
+        let ReconnectRequest = false;
+		
         // 💡 提供一個公開的刷新管道給外部按鈕呼叫
         function forceResetAndRefresh() {
             isFrozen = false;
 			retryCount = 0; // 手動刷新時重置計數
+			ReconnectRequest = false;
             box.classList.remove('box-frozen');
             titleDiv.innerHTML = formatTitle(item.title);
             img.style.display = 'block';
             // 強制加上最新時間戳，使瀏覽器清空緩存，向高公局發送全新連線
-            img.src = item.src + '&forceRefresh=' + new Date().getTime();
             lastUpdate = Date.now();
+            img.src = item.src + '&forceRefresh=' + lastUpdate;
         }
 
-        let ReconnectRequest = false;
-		
         function Refresh() {
-			if ( !ReconnectRequest ) {
-				ReconnectRequest = true;
-				const testImg = new Image();
-				testImg.onload = function() {
-					// 只有真實拿到影像才解除斷訊
-					if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
-						isFrozen = false;
-						retryCount = 0; // 成功連線，歸零計數
-						box.classList.remove('box-frozen');
-						titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
-						img.style.display = 'block';
-						img.src = item.src + '&refresh=' + new Date().getTime();
-						lastUpdate = Date.now();
-					}
-				};
-				// 測試失敗時，僅累加此攝影機自己的 retryCount
-				testImg.onerror = function() {
-					retryCount++;
-					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
-				};
-				testImg.src = item.src + '&test=' + new Date().getTime();
+			if (ReconnectRequest) return;
+			ReconnectRequest = true;
+			const testImg = new Image();
+
+			// 設定 timeout 避免 iOS 請求永遠卡在 pending
+			const timer = setTimeout(() => {
+				testImg.src = ""; // 中止請求
+				ReconnectRequest = false; // 🔓 逾時解鎖
+			}, 5000);
+
+			testImg.onload = function() {
+				clearTimeout(timer);
+				// 只有真實拿到影像才解除斷訊
+				if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
+					isFrozen = false;
+					retryCount = 0; // 成功連線，歸零計數
+					box.classList.remove('box-frozen');
+					titleDiv.innerHTML = formatTitle(item.title); // 恢復原標題
+					img.style.display = 'block';
+					img.src = item.src + '&refresh=' + new Date().getTime();
+					lastUpdate = Date.now();
+				}
 				ReconnectRequest = false;
-			}
+			};
+			// 測試失敗時，僅累加此攝影機自己的 retryCount
+			testImg.onerror = function() {
+				clearTimeout(timer);
+				retryCount++;
+				titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
+				ReconnectRequest = false;
+			};
+			testImg.src = item.src + '&test=' + new Date().getTime();
 		}
 		
         // 將此格子的重置控制權丟到全域陣列中
