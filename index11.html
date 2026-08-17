@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 0757</title>
+    <title>南崁 - 竹北 國一即時影像 0807</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -680,62 +680,70 @@
 			let retryCount = 0;
 			let ReconnectRequest = false;
 
-            function freezeThisCamera() {
-                if (isFrozen) return;
-                isFrozen = true;
-                box.classList.add('box-frozen');
-                // 若原本 retryCount 為 0（時間逾時觸發），強制設為 1
-                if (retryCount === 0) retryCount = 1;
-                titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊 ${retryCount}]</span> ` + formatTitle(item.title);
-                img.style.display = 'none';
-            }
+			// 修正後的 freezeThisCamera：支援傳入指定的重試次數
+			function freezeThisCamera(count) {
+				isFrozen = true;
+				box.classList.add('box-frozen');
+				
+				// 若有傳入 count 則使用傳入值，否則保持目前的 retryCount（至少為 1）
+				if (typeof count === 'number') {
+					retryCount = count;
+				} else if (retryCount === 0) {
+					retryCount = 1;
+				}
 
-            function Refresh() {
-                const isInView = box.getAttribute('data-in-view') === 'true';
-                if (!isInView || ReconnectRequest) return; 
+				titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊 ${retryCount}]</span> ` + formatTitle(item.title);
+				img.style.display = 'none';
+			}
 
-                ReconnectRequest = true;
+			function Refresh() {
+				const isInView = box.getAttribute('data-in-view') === 'true';
+				if (!isInView || ReconnectRequest) return; 
 
-                const timer = setTimeout(() => {
-                    ReconnectRequest = false;
-                }, 5000);
+				ReconnectRequest = true;
 
-                img.onload = function() {
-                    clearTimeout(timer);
-                    ReconnectRequest = false;
-                    
-                    if (isFrozen) {
-                        isFrozen = false;
-                        box.classList.remove('box-frozen');
-                        titleDiv.innerHTML = formatTitle(item.title);
-                        img.style.display = 'block';
-                    }
-                    
-                    lastUpdate = Date.now();
-                    retryCount = 0;
-                    
-                    if (img.naturalWidth && img.naturalHeight) {
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        try {
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        } catch (e) {}
-                    }
-                };
+				// 設定 5 秒連線 Timeout，若逾時未回應視同失敗
+				const timer = setTimeout(() => {
+					ReconnectRequest = false;
+					retryCount++;
+					freezeThisCamera(retryCount);
+				}, 5000);
 
-                img.onerror = function() {
-                    clearTimeout(timer);
-                    ReconnectRequest = false;
-                    retryCount++;
-                    
-                    // 發生錯誤時直接觸發斷訊凍結，並更新重試計數
-                    isFrozen = false; // 暫時解鎖以允許 freezeThisCamera 更新標題
-                    freezeThisCamera();
-                    titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
-                };
+				img.onload = function() {
+					clearTimeout(timer);
+					ReconnectRequest = false;
+					
+					// 只有在真正成功載入影像時，才恢復正常顯示並清空重試次數
+					if (isFrozen) {
+						isFrozen = false;
+						box.classList.remove('box-frozen');
+						titleDiv.innerHTML = formatTitle(item.title);
+						img.style.display = 'block';
+					}
+					
+					lastUpdate = Date.now();
+					retryCount = 0; // 成功連線才歸零
+					
+					if (img.naturalWidth && img.naturalHeight) {
+						canvas.width = img.naturalWidth;
+						canvas.height = img.naturalHeight;
+						try {
+							ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+						} catch (e) {}
+					}
+				};
 
-                img.src = item.src + '&refresh=' + Date.now();
-            }
+				img.onerror = function() {
+					clearTimeout(timer);
+					ReconnectRequest = false;
+					retryCount++;
+					
+					// 發生錯誤時直接更新計數並凍結/更新文字
+					freezeThisCamera(retryCount);
+				};
+
+				img.src = item.src + '&refresh=' + Date.now();
+			}
 			
 			function forceResetAndRefresh() {
 				isFrozen = false;
