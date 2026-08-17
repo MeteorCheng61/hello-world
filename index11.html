@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 2026_0817_1937</title>
+    <title>南崁 - 竹北 國一即時影像 2026_0817_1939</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1212,6 +1212,27 @@
 		function hideSegmentButtons() {
 			prevBtn.classList.remove('show');
 			nextBtn.classList.remove('show');
+		}
+
+		// 輔助函式：即時計算元件是否真的在 Mobile Safari 視窗內（不單純依賴 IntersectionObserver）
+		function isElementInViewport(el) {
+			const rect = el.getBoundingClientRect();
+			return (
+				rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
+				rect.bottom > 0
+			);
+		}
+
+		function triggerInViewRefresh() {
+			cameraControllers.forEach(ctrl => {
+				// 同時檢查 data-in-view 或實時計算 Viewport，解決 iOS 延遲問題
+				const isInViewAttr = ctrl.boxElement.getAttribute('data-in-view') === 'true';
+				const isVisible = isInViewAttr || isElementInViewport(ctrl.boxElement);
+
+				if (isVisible) {
+					ctrl.refreshIfInView();
+				}
+			});
 		}
 
 		// 監聽滾動事件以觸發顯示
