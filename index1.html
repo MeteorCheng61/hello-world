@@ -473,168 +473,175 @@
         loadCCTVData();
     }
 
-    function loadCCTVData() {
-        activeTimers.forEach(timer => clearInterval(timer));
-        activeTimers = [];
-        cameraControllers.length = 0;
-        container.innerHTML = '';
+	function loadCCTVData() {
+		activeTimers.forEach(timer => clearInterval(timer));
+		activeTimers = [];
+		cameraControllers.length = 0;
+		container.innerHTML = '';
 
-        cctvData.forEach((item, index) => {
-            const box = document.createElement('div');
-            box.className = 'cctv-box';
-            box.setAttribute('data-index', index);
-            
-            if (!item.title && !item.src) {
-                box.style.visibility = 'hidden';
-                container.appendChild(box);
-                return;
-            }
-            
-            box.setAttribute('data-in-view', 'false');
+		cctvData.forEach((item, index) => {
+			const box = document.createElement('div');
+			box.className = 'cctv-box';
+			box.setAttribute('data-index', index);
+			
+			if (!item.title && !item.src) {
+				box.style.visibility = 'hidden';
+				container.appendChild(box);
+				return;
+			}
+			
+			box.setAttribute('data-in-view', 'false');
 
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'cctv-title';
-            titleDiv.innerHTML = formatTitle(item.title);
+			const titleDiv = document.createElement('div');
+			titleDiv.className = 'cctv-title';
+			titleDiv.innerHTML = formatTitle(item.title);
 
-            titleDiv.addEventListener('click', function() {
-                if(item.link) window.open(item.link, '_blank');
-            });
-            
-            const wrapper = document.createElement('div');
-            wrapper.className = 'video-wrapper';
+			titleDiv.addEventListener('click', function() {
+				if(item.link) window.open(item.link, '_blank');
+			});
+			
+			const wrapper = document.createElement('div');
+			wrapper.className = 'video-wrapper';
 
-            const img = document.createElement('img');
-            img.className = 'cctv-img';
-            img.src = item.src;
+			const img = document.createElement('img');
+			img.className = 'cctv-img';
+			img.src = item.src;
 
-            const canvas = document.createElement('canvas');
-            canvas.className = 'cctv-canvas';
-            const ctx = canvas.getContext('2d');
+			const canvas = document.createElement('canvas');
+			canvas.className = 'cctv-canvas';
+			const ctx = canvas.getContext('2d');
 
-            wrapper.appendChild(img);
-            wrapper.appendChild(canvas);
-            box.appendChild(titleDiv);
-            box.appendChild(wrapper);
-            container.appendChild(box);
+			wrapper.appendChild(img);
+			wrapper.appendChild(canvas);
+			box.appendChild(titleDiv);
+			box.appendChild(wrapper);
+			container.appendChild(box);
 
-            observer.observe(box);
+			observer.observe(box);
 
-            let lastUpdate = Date.now();
-            let isFrozen = false;
-            let retryCount = 0;
+			let lastUpdate = Date.now();
+			let isFrozen = false;
+			let retryCount = 0;
+			let ReconnectRequest = false;
 
-            img.onload = function() {
-                if (isFrozen) return;
-                lastUpdate = Date.now();
-                
-                if (img.naturalWidth && img.naturalHeight) {
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                }
-                try {
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                } catch (e) {}
-            };
+			function freezeThisCamera() {
+				if (isFrozen) return;
+				isFrozen = true;
+				box.classList.add('box-frozen');
+				titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
+				img.style.display = 'none';
+			}
 
-            img.onerror = function() {
-                freezeThisCamera();
-            };
+			// 【方案 1】：重構 Refresh 函式，取消 testImg 競態，改由主 <img> 處理並加上防鎖定 Timeout
+			function Refresh() {
+				const isInView = box.getAttribute('data-in-view') === 'true';
+				if (!isInView || ReconnectRequest) return; 
 
-            function freezeThisCamera() {
-                if (isFrozen) return;
-                isFrozen = true;
-                box.classList.add('box-frozen');
-                titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
-                img.style.display = 'none';
-            }
+				ReconnectRequest = true;
 
-            let ReconnectRequest = false;
-            
-            function forceResetAndRefresh() {
-                isFrozen = false;
-                retryCount = 0;
-                ReconnectRequest = false;
-                box.classList.remove('box-frozen');
-                titleDiv.innerHTML = formatTitle(item.title);
-                img.style.display = 'block';
-                lastUpdate = Date.now();
-                img.src = item.src + '&forceRefresh=' + lastUpdate;
-            }
+				// 設置 5 秒超時，防止請求掛起導致永久卡死
+				const timer = setTimeout(() => {
+					ReconnectRequest = false;
+				}, 5000);
 
-            function Refresh() {
-                if (ReconnectRequest) return;
-                ReconnectRequest = true;
-                const testImg = new Image();
+				img.onload = function() {
+					clearTimeout(timer);
+					ReconnectRequest = false;
+					
+					if (isFrozen) {
+						isFrozen = false;
+						box.classList.remove('box-frozen');
+						titleDiv.innerHTML = formatTitle(item.title);
+						img.style.display = 'block';
+					}
+					
+					lastUpdate = Date.now();
+					retryCount = 0;
+					
+					if (img.naturalWidth && img.naturalHeight) {
+						canvas.width = img.naturalWidth;
+						canvas.height = img.naturalHeight;
+						try {
+							ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+						} catch (e) {}
+					}
+				};
 
-                const timer = setTimeout(() => {
-                    testImg.src = "";
-                    ReconnectRequest = false;
-                }, 5000);
+				img.onerror = function() {
+					clearTimeout(timer);
+					ReconnectRequest = false;
+					retryCount++;
+					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
+				};
 
-                testImg.onload = function() {
-                    clearTimeout(timer);
-                    if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
-                        isFrozen = false;
-                        retryCount = 0;
-                        box.classList.remove('box-frozen');
-                        titleDiv.innerHTML = formatTitle(item.title);
-                        img.style.display = 'block';
-                        img.src = item.src + '&refresh=' + new Date().getTime();
-                        lastUpdate = Date.now();
-                    }
-                    ReconnectRequest = false;
-                };
-                testImg.onerror = function() {
-                    clearTimeout(timer);
-                    retryCount++;
-                    titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
-                    ReconnectRequest = false;
-                };
-                testImg.src = item.src + '&test=' + new Date().getTime();
-            }
-            
-            cameraControllers.push({
-                forceReset: forceResetAndRefresh,
-                refreshIfFrozen: function() {
-                    const isInView = box.getAttribute('data-in-view') === 'true';
-                    if (isFrozen && isInView) {
-                        Refresh();
-                    }
-                }
-            });
-            
-            const freezeTimer = setInterval(function() {
-                if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
-                    retryCount = 0;
-                    freezeThisCamera();
-                }
-            }, 6000);
+				// 發起帶有時間戳記的新請求
+				img.src = item.src + '&refresh=' + Date.now();
+			}
 
-            const refreshTimer = setInterval(function() {
-                const isInView = box.getAttribute('data-in-view') === 'true';
-                if (isInView) {
-                    Refresh();
-                }
-            }, 8000);
+			function forceResetAndRefresh() {
+				isFrozen = false;
+				retryCount = 0;
+				ReconnectRequest = false;
+				box.classList.remove('box-frozen');
+				titleDiv.innerHTML = formatTitle(item.title);
+				img.style.display = 'block';
+				lastUpdate = Date.now();
+				img.src = item.src + '&forceRefresh=' + lastUpdate;
+			}
 
-            activeTimers.push(freezeTimer, refreshTimer);
-        });
-    }
+			cameraControllers.push({
+				boxElement: box,
+				forceReset: forceResetAndRefresh,
+				refreshIfFrozen: function() {
+					const isInView = box.getAttribute('data-in-view') === 'true';
+					if (isFrozen && isInView) {
+						Refresh();
+					}
+				},
+				refreshIfInView: function() {
+					const isInView = box.getAttribute('data-in-view') === 'true';
+					if (isInView) {
+						Refresh();
+					}
+				}
+			});
+
+			const freezeTimer = setInterval(function() {
+				if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
+					retryCount = 0;
+					freezeThisCamera();
+				}
+			}, 6000);
+
+			// 【方案 2】：加入 0~3 秒隨機錯開（Stagger）時間，避免所有 CCTV 在同一秒擠爆連線
+			const randomOffset = Math.floor(Math.random() * 3000);
+			
+			const delayTimeout = setTimeout(() => {
+				const refreshTimer = setInterval(function() {
+					Refresh();
+				}, 8000);
+				activeTimers.push(refreshTimer);
+			}, randomOffset);
+
+			activeTimers.push(freezeTimer, delayTimeout);
+		});
+	}
+
 
     initSelectors();
 
-    document.getElementById('globalRefreshBtn').addEventListener('click', function() {
-        this.style.transform = 'rotate(360deg)';
-        setTimeout(() => { this.style.transform = 'none'; }, 500);
+	// 【方案 3】：優化全域與滾動事件，只對當前「可見區域（In-View）」的畫面發送請求
+	document.getElementById('globalRefreshBtn').addEventListener('click', function() {
+		this.style.transform = 'rotate(360deg)';
+		setTimeout(() => { this.style.transform = 'none'; }, 500);
 
-        cameraControllers.forEach(ctrl => {
-            ctrl.refreshIfFrozen();
-        });
-
-        cameraControllers.forEach(ctrl => {
-            ctrl.forceReset();
-        });
-    });
+		// 僅刷新的確在畫面中的鏡頭
+		cameraControllers.forEach(ctrl => {
+			if (ctrl.boxElement.getAttribute('data-in-view') === 'true') {
+				ctrl.forceReset();
+			}
+		});
+	});
 
 let resetGpsTimer = null;
     (function() {
@@ -911,26 +918,29 @@ let resetGpsTimer = null;
             badge.classList.add('show');
         }
 
-        window.addEventListener('scroll', function() {
-            updateBadge();
+		// 修改滾動監聽中的停止滾動觸發邏輯
+		window.addEventListener('scroll', function() {
+			updateBadge();
 
-            if (typeof resetGpsTimer === 'function') {
-                resetGpsTimer();
-            }
+			if (typeof resetGpsTimer === 'function') {
+				resetGpsTimer();
+			}
 
-            if (hideTimeout !== null) clearTimeout(hideTimeout);
-            if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
+			if (hideTimeout !== null) clearTimeout(hideTimeout);
+			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
 
-            stopScrollTimeout = setTimeout(function() {
-                cameraControllers.forEach(ctrl => {
-                    ctrl.refreshIfFrozen();
-                });
-            }, 200);
+			stopScrollTimeout = setTimeout(function() {
+				// 滾動停止時，只觸發畫面內鏡頭的刷新
+				cameraControllers.forEach(ctrl => {
+					ctrl.refreshIfInView();
+				});
+			}, 300);
 
-            hideTimeout = setTimeout(function() {
-                badge.classList.remove('show');
-            }, 2500);
-        });
+			hideTimeout = setTimeout(function() {
+				badge.classList.remove('show');
+			}, 2500);
+		});
+
     })();
 
     (function() {
