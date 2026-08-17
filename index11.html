@@ -1077,7 +1077,7 @@
             badge.classList.add('show');
         }
 
-		// 修改滾動監聽中的停止滾動觸發邏輯
+		// 1. 優化滾動事件
 		window.addEventListener('scroll', function() {
 			updateBadge();
 
@@ -1088,15 +1088,23 @@
 			if (hideTimeout !== null) clearTimeout(hideTimeout);
 			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
 
+			// 滑動停止 100ms 後強制刷新
 			stopScrollTimeout = setTimeout(function() {
-				// 滾動停止時，只觸發畫面內鏡頭的刷新
-				ctrl.refreshIfInView();
+				triggerInViewRefresh();
 			}, 100);
 
 			hideTimeout = setTimeout(function() {
 				badge.classList.remove('show');
 			}, 2500);
-		});
+		}, { passive: true });
+
+		// 2. 針對 iOS 額外監聽手指離開（touchend/touchcancel）
+		window.addEventListener('touchend', function() {
+			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
+			stopScrollTimeout = setTimeout(function() {
+				triggerInViewRefresh();
+			}, 150);
+		}, { passive: true });
 
     })();
 
