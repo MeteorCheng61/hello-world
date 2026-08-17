@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 0744</title>
+    <title>南崁 - 竹北 國一即時影像 0750</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -684,7 +684,7 @@
 				if (isFrozen) return;
 				isFrozen = true;
 				box.classList.add('box-frozen');
-				titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
+				titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊 ${retryCount}]</span> ` + formatTitle(item.title);
 				img.style.display = 'none';
 			}
 
@@ -832,7 +832,7 @@ let resetGpsTimer = null;
         function updateArrowIcon(lat1, lon1, lat2, lon2) {
             const dist = getDistanceKm(lat1, lon1, lat2, lon2);
             if (dist < 0.005) {
-                gpsBtn.innerText = '?';
+                gpsBtn.innerText = '🧭';
                 return;
             }
 
@@ -991,7 +991,7 @@ let resetGpsTimer = null;
         function startGps() {
             isGpsActive = true;
             gpsBtn.classList.add('active');
-            gpsBtn.innerText = '?';
+            gpsBtn.innerText = '🧭';
             trackAndScroll();
             gpsTimer = setInterval(trackAndScroll, 10000);
         }
@@ -999,7 +999,7 @@ let resetGpsTimer = null;
         function stopGps() {
             isGpsActive = false;
             gpsBtn.classList.remove('active');
-            gpsBtn.innerText = '?';
+            gpsBtn.innerText = '🧭';
             if (gpsTimer) {
                 clearInterval(gpsTimer);
                 gpsTimer = null;
