@@ -3387,13 +3387,13 @@
         const selectedSegment = segmentSelect.value;
 
         if (!selectedRoad || !selectedSegment || !All_Data[selectedRoad] || !All_Data[selectedRoad][selectedSegment]) {
-            document.getElementById('pageTitle').innerText = `?️ 國道即時影像`;
+            document.getElementById('pageTitle').innerText = `🛣️ 國道即時影像`;
             cctvData = [];
             clearCCTVData();
             return;
         }
 
-        document.getElementById('pageTitle').innerText = `?️ ${selectedRoad} (${selectedSegment}) 即時影像`;
+        document.getElementById('pageTitle').innerText = `🛣️ ${selectedRoad} (${selectedSegment}) 即時影像`;
         cctvData = All_Data[selectedRoad][selectedSegment];
         loadCCTVData();
     }
