@@ -639,7 +639,7 @@
         });
     });
 
-    let resetGpsTimer = null;
+let resetGpsTimer = null;
     (function() {
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
@@ -688,100 +688,115 @@
             }
         }
 
-		function trackAndScroll() {
-			if (!navigator.geolocation) {
-				alert('您的瀏覽器不支援 GPS 地理定位功能');
-				stopGps();
-				return;
-			}
+        function trackAndScroll() {
+            if (!navigator.geolocation) {
+                alert('您的瀏覽器不支援 GPS 地理定位功能');
+                stopGps();
+                return;
+            }
 
-			navigator.geolocation.getCurrentPosition(
-				function(position) {
-					const currentLat = position.coords.latitude;
-					const currentLon = position.coords.longitude;
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const currentLat = position.coords.latitude;
+                    const currentLon = position.coords.longitude;
 
-					if (lastCoords) {
-						updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
-					}
-					lastCoords = { lat: currentLat, lon: currentLon };
+                    if (lastCoords) {
+                        updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
+                    }
+                    lastCoords = { lat: currentLat, lon: currentLon };
 
-					let minDistance = Infinity;
-					let closestIndex = -1;
+                    // 1. 找出當前區段內距離最近的影像卡片
+                    let minDistance = Infinity;
+                    let closestIndex = -1;
 
-					// 1. 先搜尋當前區段的所有有效 GPS 點
-					cctvData.forEach((item, idx) => {
-						if (!item.lat || !item.lon) return;
-						const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-						if (dist < minDistance) {
-							minDistance = dist;
-							closestIndex = idx;
-						}
-					});
+                    cctvData.forEach((item, idx) => {
+                        if (!item.lat || !item.lon) return;
+                        const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestIndex = idx;
+                        }
+                    });
 
-					// 2. 判斷跨區段條件
-					if (closestIndex !== -1) {
-						const road = roadSelect.value;
-						const currentSeg = segmentSelect.value;
-						const segments = Object.keys(All_Data[road] || {});
-						const currentSegIndex = segments.indexOf(currentSeg);
+                    if (closestIndex === -1) return;
 
-						// 情況 A：當前最近圖像為該區段第一個
-						if (closestIndex === 0 && currentSegIndex > 0) {
-							const prevSegName = segments[currentSegIndex - 1];
-							const prevSegData = All_Data[road][prevSegName] || [];
+                    const road = roadSelect.value;
+                    const currentSeg = segmentSelect.value;
+                    const segments = All_Data[road] ? Object.keys(All_Data[road]) : [];
+                    const segIndex = segments.indexOf(currentSeg);
 
-							// 從上一區段最後面開始找第一個有效值 (最後一個點)
-							for (let i = prevSegData.length - 1; i >= 0; i--) {
-								const item = prevSegData[i];
-								if (item.lat && item.lon) {
-									const prevDist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-									// 若上一區段邊界距離比當前最近距離更近，觸發上一區段按鈕
-									if (prevDist < minDistance) {
-										document.getElementById('prevSegmentBtn').click();
-										return;
-									}
-									break; // 找到上一區段最後一個有效值即可停止
-								}
-							}
-						}
+                    // 2. 當前圖像為該區段前 2 個時，檢查上一區段從最後面開始的有效值
+                    if (closestIndex <= 1 && segIndex > 0) {
+                        const prevSegName = segments[segIndex - 1];
+                        const prevSegData = All_Data[road][prevSegName] || [];
+                        let prevMinDist = Infinity;
 
-						// 情況 B：當前最近圖像為該區段最後一個
-						if (closestIndex === cctvData.length - 1 && currentSegIndex < segments.length - 1) {
-							const nextSegName = segments[currentSegIndex + 1];
-							const nextSegData = All_Data[road][nextSegName] || [];
+                        // 倒序尋找上一區段最後面最多 2 個有效 GPS 節點
+                        let foundCount = 0;
+                        for (let i = prevSegData.length - 1; i >= 0; i--) {
+                            const item = prevSegData[i];
+                            if (item.lat && item.lon) {
+                                const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+                                if (dist < prevMinDist) {
+                                    prevMinDist = dist;
+                                }
+                                foundCount++;
+                                if (foundCount >= 2) break;
+                            }
+                        }
 
-							// 從下一區段開頭開始找第一個有效值 (第一個點)
-							for (let i = 0; i < nextSegData.length; i++) {
-								const item = nextSegData[i];
-								if (item.lat && item.lon) {
-									const nextDist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-									// 若下一區段邊界距離比當前最近距離更近，觸發下一區段按鈕
-									if (nextDist < minDistance) {
-										document.getElementById('nextSegmentBtn').click();
-										return;
-									}
-									break; // 找到下一區段第一個有效值即可停止
-								}
-							}
-						}
+                        // 若上一區段比較近，觸發上一區段按鈕並結束本次定位
+                        if (prevMinDist < minDistance) {
+                            const prevBtn = document.getElementById('prevSegmentBtn');
+                            if (prevBtn) prevBtn.click();
+                            return;
+                        }
+                    }
 
-						// 3. 若無需切換區段，則維持滾動至當前區段最近的 CCTV 卡片
-						const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
-						if (targetBox) {
-							targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-						}
-					}
-				},
-				function(error) {
-					console.warn('GPS 取得失敗:', error.message);
-				},
-				{
-					enableHighAccuracy: true,
-					timeout: 2500,
-					maximumAge: 0
-				}
-			);
-		}
+                    // 3. 當前圖像為該區段最後 2 個時，檢查下一區段從頭開始的有效值
+                    if (closestIndex >= cctvData.length - 2 && segIndex !== -1 && segIndex < segments.length - 1) {
+                        const nextSegName = segments[segIndex + 1];
+                        const nextSegData = All_Data[road][nextSegName] || [];
+                        let nextMinDist = Infinity;
+
+                        // 正序尋找下一區段開頭最多 2 個有效 GPS 節點
+                        let foundCount = 0;
+                        for (let i = 0; i < nextSegData.length; i++) {
+                            const item = nextSegData[i];
+                            if (item.lat && item.lon) {
+                                const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+                                if (dist < nextMinDist) {
+                                    nextMinDist = dist;
+                                }
+                                foundCount++;
+                                if (foundCount >= 2) break;
+                            }
+                        }
+
+                        // 若下一區段比較近，觸發下一區段按鈕並結束本次定位
+                        if (nextMinDist < minDistance) {
+                            const nextBtn = document.getElementById('nextSegmentBtn');
+                            if (nextBtn) nextBtn.click();
+                            return;
+                        }
+                    }
+
+                    // 4. 若當前區段即為最近，平滑捲動至目標卡片
+                    const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
+                    if (targetBox) {
+                        targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                },
+                function(error) {
+                    console.warn('GPS 取得失敗:', error.message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 2500,
+                    maximumAge: 0
+                }
+            );
+        }
 
         function startGps() {
             isGpsActive = true;
