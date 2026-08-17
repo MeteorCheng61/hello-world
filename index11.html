@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 2026_0817_1939</title>
+    <title>南崁 - 竹北 國一即時影像 0744</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -679,7 +679,6 @@
 			let isFrozen = false;
 			let retryCount = 0;
 			let ReconnectRequest = false;
-			let requestTimer = null; // 【優化】：用於記錄超時計時器
 
 			function freezeThisCamera() {
 				if (isFrozen) return;
@@ -689,23 +688,20 @@
 				img.style.display = 'none';
 			}
 
-			// 【優化】：加速Refresh回應、將Timeout改為2.5秒
+			// 【方案 1】：重構 Refresh 函式，取消 testImg 競態，改由主 <img> 處理並加上防鎖定 Timeout
 			function Refresh() {
 				const isInView = box.getAttribute('data-in-view') === 'true';
 				if (!isInView || ReconnectRequest) return; 
 
 				ReconnectRequest = true;
 
-				// 將 5 秒超時改為 2.5 秒，避免連線卡死太久
-				if (requestTimer) clearTimeout(requestTimer);
-				requestTimer = setTimeout(() => {
+				// 設置 5 秒超時，防止請求掛起導致永久卡死
+				const timer = setTimeout(() => {
 					ReconnectRequest = false;
-					img.onload = null;
-					img.onerror = null;
-				}, 2500);
+				}, 5000);
 
 				img.onload = function() {
-					clearTimeout(requestTimer);
+					clearTimeout(timer);
 					ReconnectRequest = false;
 					
 					if (isFrozen) {
@@ -728,7 +724,7 @@
 				};
 
 				img.onerror = function() {
-					clearTimeout(requestTimer);
+					clearTimeout(timer);
 					ReconnectRequest = false;
 					retryCount++;
 					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
@@ -773,6 +769,7 @@
 				}
 			}, 6000);
 
+			// 【方案 2】：加入 0~2 秒隨機錯開（Stagger）時間，避免所有 CCTV 在同一秒擠爆連線
 			const randomOffset = Math.floor(Math.random() * 2000);
 			
 			const delayTimeout = setTimeout(() => {
@@ -802,7 +799,7 @@
 		});
 	});
 
-	let resetGpsTimer = null;
+let resetGpsTimer = null;
     (function() {
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
@@ -1077,7 +1074,7 @@
             badge.classList.add('show');
         }
 
-		// 1. 優化滾動事件
+		// 修改滾動監聽中的停止滾動觸發邏輯
 		window.addEventListener('scroll', function() {
 			updateBadge();
 
@@ -1088,23 +1085,17 @@
 			if (hideTimeout !== null) clearTimeout(hideTimeout);
 			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
 
-			// 滑動停止 100ms 後強制刷新
 			stopScrollTimeout = setTimeout(function() {
-				triggerInViewRefresh();
-			}, 100);
+				// 滾動停止時，只觸發畫面內鏡頭的刷新
+				cameraControllers.forEach(ctrl => {
+					ctrl.refreshIfInView();
+				});
+			}, 300);
 
 			hideTimeout = setTimeout(function() {
 				badge.classList.remove('show');
 			}, 2500);
-		}, { passive: true });
-
-		// 2. 針對 iOS 額外監聽手指離開（touchend/touchcancel）
-		window.addEventListener('touchend', function() {
-			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
-			stopScrollTimeout = setTimeout(function() {
-				triggerInViewRefresh();
-			}, 150);
-		}, { passive: true });
+		});
 
     })();
 
@@ -1214,27 +1205,6 @@
 			nextBtn.classList.remove('show');
 		}
 
-		// 輔助函式：即時計算元件是否真的在 Mobile Safari 視窗內（不單純依賴 IntersectionObserver）
-		function isElementInViewport(el) {
-			const rect = el.getBoundingClientRect();
-			return (
-				rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
-				rect.bottom > 0
-			);
-		}
-
-		function triggerInViewRefresh() {
-			cameraControllers.forEach(ctrl => {
-				// 同時檢查 data-in-view 或實時計算 Viewport，解決 iOS 延遲問題
-				const isInViewAttr = ctrl.boxElement.getAttribute('data-in-view') === 'true';
-				const isVisible = isInViewAttr || isElementInViewport(ctrl.boxElement);
-
-				if (isVisible) {
-					ctrl.refreshIfInView();
-				}
-			});
-		}
-
 		// 監聽滾動事件以觸發顯示
 		window.addEventListener('scroll', function() {
 			updateSegmentButtons();
@@ -1279,11 +1249,6 @@
 			}
 		});
 	})();
-
-
-
-
-
 </script>
 </body>
 </html>
