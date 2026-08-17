@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 0750</title>
+    <title>南崁 - 竹北 國一即時影像 0757</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -680,60 +680,63 @@
 			let retryCount = 0;
 			let ReconnectRequest = false;
 
-			function freezeThisCamera() {
-				if (isFrozen) return;
-				isFrozen = true;
-				box.classList.add('box-frozen');
-				titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊 ${retryCount}]</span> ` + formatTitle(item.title);
-				img.style.display = 'none';
-			}
+            function freezeThisCamera() {
+                if (isFrozen) return;
+                isFrozen = true;
+                box.classList.add('box-frozen');
+                // 若原本 retryCount 為 0（時間逾時觸發），強制設為 1
+                if (retryCount === 0) retryCount = 1;
+                titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊 ${retryCount}]</span> ` + formatTitle(item.title);
+                img.style.display = 'none';
+            }
 
-			// 【方案 1】：重構 Refresh 函式，取消 testImg 競態，改由主 <img> 處理並加上防鎖定 Timeout
-			function Refresh() {
-				const isInView = box.getAttribute('data-in-view') === 'true';
-				if (!isInView || ReconnectRequest) return; 
+            function Refresh() {
+                const isInView = box.getAttribute('data-in-view') === 'true';
+                if (!isInView || ReconnectRequest) return; 
 
-				ReconnectRequest = true;
+                ReconnectRequest = true;
 
-				// 設置 5 秒超時，防止請求掛起導致永久卡死
-				const timer = setTimeout(() => {
-					ReconnectRequest = false;
-				}, 5000);
+                const timer = setTimeout(() => {
+                    ReconnectRequest = false;
+                }, 5000);
 
-				img.onload = function() {
-					clearTimeout(timer);
-					ReconnectRequest = false;
-					
-					if (isFrozen) {
-						isFrozen = false;
-						box.classList.remove('box-frozen');
-						titleDiv.innerHTML = formatTitle(item.title);
-						img.style.display = 'block';
-					}
-					
-					lastUpdate = Date.now();
-					retryCount = 0;
-					
-					if (img.naturalWidth && img.naturalHeight) {
-						canvas.width = img.naturalWidth;
-						canvas.height = img.naturalHeight;
-						try {
-							ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-						} catch (e) {}
-					}
-				};
+                img.onload = function() {
+                    clearTimeout(timer);
+                    ReconnectRequest = false;
+                    
+                    if (isFrozen) {
+                        isFrozen = false;
+                        box.classList.remove('box-frozen');
+                        titleDiv.innerHTML = formatTitle(item.title);
+                        img.style.display = 'block';
+                    }
+                    
+                    lastUpdate = Date.now();
+                    retryCount = 0;
+                    
+                    if (img.naturalWidth && img.naturalHeight) {
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        try {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        } catch (e) {}
+                    }
+                };
 
-				img.onerror = function() {
-					clearTimeout(timer);
-					ReconnectRequest = false;
-					retryCount++;
-					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
-				};
+                img.onerror = function() {
+                    clearTimeout(timer);
+                    ReconnectRequest = false;
+                    retryCount++;
+                    
+                    // 發生錯誤時直接觸發斷訊凍結，並更新重試計數
+                    isFrozen = false; // 暫時解鎖以允許 freezeThisCamera 更新標題
+                    freezeThisCamera();
+                    titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
+                };
 
-				// 發起帶有時間戳記的新請求
-				img.src = item.src + '&refresh=' + Date.now();
-			}
-
+                img.src = item.src + '&refresh=' + Date.now();
+            }
+			
 			function forceResetAndRefresh() {
 				isFrozen = false;
 				retryCount = 0;
