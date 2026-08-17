@@ -613,8 +613,8 @@
 				}
 			}, 6000);
 
-			// 【方案 2】：加入 0~3 秒隨機錯開（Stagger）時間，避免所有 CCTV 在同一秒擠爆連線
-			const randomOffset = Math.floor(Math.random() * 3000);
+			// 【方案 2】：加入 0~2 秒隨機錯開（Stagger）時間，避免所有 CCTV 在同一秒擠爆連線
+			const randomOffset = Math.floor(Math.random() * 2000);
 			
 			const delayTimeout = setTimeout(() => {
 				const refreshTimer = setInterval(function() {
