@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 2002</title>
+    <title>南崁 - 竹北 國一即時影像 2011</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -682,14 +682,15 @@
             let lastUpdate = Date.now();
             let isFrozen = false;
             let retryCount = 0;
+			let consecutiveFailures = 0;
 
             img.onload = function() {
                 if (isFrozen) return;
+                lastUpdate = Date.now();
                 
                 if (img.naturalWidth && img.naturalHeight) {
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
-					lastUpdate = Date.now();
                 }
                 try {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -697,7 +698,10 @@
             };
 
             img.onerror = function() {
-                freezeThisCamera();
+				consecutiveFailures++;
+				if (consecutiveFailures >= 3) {
+					freezeThisCamera();
+				}
             };
 
             function freezeThisCamera() {
