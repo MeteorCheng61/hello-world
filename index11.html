@@ -780,6 +780,7 @@
 
 				activeTimers.push(freezeTimer, refreshTimer);
 			}, randomOffset);
+			activeTimers.push(delayTimeout); // 將 setTimeout 一併放入管理陣列
         });
     }
 
