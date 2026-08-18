@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 1927</title>
+    <title>南崁 - 竹北 國一即時影像 1718</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -678,20 +678,14 @@
             let lastUpdate = Date.now();
             let isFrozen = false;
             let retryCount = 0;
-			let consecutiveFailures = 0; // 新增：連續失敗計數器
-
-
 
             img.onload = function() {
                 if (isFrozen) return;
+                lastUpdate = Date.now();
                 
                 if (img.naturalWidth && img.naturalHeight) {
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
-					consecutiveFailures = 0; // 成功讀取，歸零失敗次數
-					box.classList.remove('box-frozen');
-					titleDiv.innerHTML = formatTitle(item.title);
-					lastUpdate = Date.now();
                 }
                 try {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -699,21 +693,14 @@
             };
 
             img.onerror = function() {
-				consecutiveFailures++;
-				// 連續失敗超過 3 次才真正判定為斷訊，避免偶發性網路波動觸發警示
-				if (consecutiveFailures >= 3) {
-					freezeThisCamera();
-				}
+                freezeThisCamera();
             };
 
             function freezeThisCamera() {
-                // if (isFrozen) return;
+                if (isFrozen) return;
                 isFrozen = true;
                 box.classList.add('box-frozen');
-				// titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${consecutiveFailures}]</span> " + formatTitle(item.title);
-				// titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${consecutiveFailures}]</span> ` + formatTitle(item.title);
-				// titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
-				titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${consecutiveFailures}]</span> ` + formatTitle(item.title);
+                titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
                 img.style.display = 'none';
             }
 
@@ -722,7 +709,7 @@
             function forceResetAndRefresh() {
                 isFrozen = false;
                 retryCount = 0;
-                consecutiveFailures = 0;
+                ReconnectRequest = false;
                 box.classList.remove('box-frozen');
                 titleDiv.innerHTML = formatTitle(item.title);
                 img.style.display = 'block';
@@ -730,19 +717,40 @@
                 img.src = item.src + '&forceRefresh=' + lastUpdate;
             }
 
-			// 直接更新真實 img.src，不再透過中介 testImg 預載，減少非必要的 HTTP 請求
-			function Refresh() {
-				const isInView = box.getAttribute('data-in-view') === 'true';
-				if (!isInView) return; // 不在畫面上時不刷圖片
+            function Refresh() {
+                if (ReconnectRequest) return;
+                ReconnectRequest = true;
+                const testImg = new Image();
 
-				// 若已經判定凍結/斷訊，才進行重新嘗試顯示
-				if (isFrozen) {
-					img.style.display = 'block';
-				}
-				
-				// 直接加上 time stamp 刷新畫面
-				img.src = item.src + '&t=' + Date.now();
-			}
+                const timer = setTimeout(() => {
+                    testImg.src = "";
+                    ReconnectRequest = false;
+                }, 5000);
+
+                testImg.onload = function() {
+                    clearTimeout(timer);
+                    if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
+                        isFrozen = false;
+                        retryCount = 0;
+                        box.classList.remove('box-frozen');
+                        titleDiv.innerHTML = formatTitle(item.title);
+                        img.style.display = 'block';
+                        img.src = item.src + '&refresh=' + new Date().getTime();
+                        lastUpdate = Date.now();
+                    }
+                    ReconnectRequest = false;
+                };
+                testImg.onerror = function() {
+                    clearTimeout(timer);
+                    retryCount++;
+					isFrozen = true;
+					box.classList.add('box-frozen');
+					img.style.display = 'none';
+                    titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
+                    ReconnectRequest = false;
+                };
+                testImg.src = item.src + '&test=' + new Date().getTime();
+            }
             
             cameraControllers.push({
                 forceReset: forceResetAndRefresh,
@@ -755,16 +763,14 @@
             });
             
             const freezeTimer = setInterval(function() {
-                if (isFrozen && (Date.now() - lastUpdate > 15000)) {
-					consecutiveFailures++;
-					if (consecutiveFailures >= 3) {
-						freezeThisCamera();
-					}
+                if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
+                    retryCount = 0;
+                    freezeThisCamera();
                 }
-            }, 7000);
+            }, 6000);
 
-			// const randomOffset = Math.floor(Math.random() * 3000);
-			// const delayTimeout = setTimeout(() => {
+			const randomOffset = Math.floor(Math.random() * 2000);
+			const delayTimeout = setTimeout(() => {
 				const refreshTimer = setInterval(function() {
 					const isInView = box.getAttribute('data-in-view') === 'true';
 					if (isInView) {
@@ -773,7 +779,7 @@
 				}, 8000);
 
 				activeTimers.push(freezeTimer, refreshTimer);
-			// }, randomOffset);
+			}, randomOffset);
         });
     }
 
@@ -792,7 +798,7 @@
         });
     });
 
-	let resetGpsTimer = null;
+let resetGpsTimer = null;
     (function() {
         const gpsBtn = document.getElementById('gpsToggleBtn');
         let isGpsActive = false;
