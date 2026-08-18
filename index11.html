@@ -685,11 +685,11 @@
 
             img.onload = function() {
                 if (isFrozen) return;
-                lastUpdate = Date.now();
                 
                 if (img.naturalWidth && img.naturalHeight) {
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
+					lastUpdate = Date.now();
                 }
                 try {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
