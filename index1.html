@@ -473,6 +473,12 @@
         loadCCTVData();
     }
 
+	function getRefreshUrl(baseUrl) {
+		const hasQuery = baseUrl.includes('?');
+		const separator = hasQuery ? '&' : '?';
+		return `${baseUrl}${separator}_t=${Date.now()}`;
+	}
+
 	function loadCCTVData() {
 		activeTimers.forEach(timer => clearInterval(timer));
 		activeTimers = [];
@@ -522,7 +528,8 @@
 			let lastUpdate = Date.now();
 			let isFrozen = false;
 			let retryCount = 0;
-			let ReconnectRequest = false;
+			let isConnecting = false;
+			let requestTimeout = null;
 
 			function freezeThisCamera() {
 				if (isFrozen) return;
@@ -532,21 +539,29 @@
 				img.style.display = 'none';
 			}
 
-			// 【方案 1】：重構 Refresh 函式，取消 testImg 競態，改由主 <img> 處理並加上防鎖定 Timeout
+			// 核心修正：安全刷新函式
 			function Refresh() {
 				const isInView = box.getAttribute('data-in-view') === 'true';
-				if (!isInView || ReconnectRequest) return; 
+				
+				// 若不在可見範圍，或正在建立連線中，直接跳過
+				if (!isInView || isConnecting) return;
 
-				ReconnectRequest = true;
+				isConnecting = true;
 
-				// 設置 5 秒超時，防止請求掛起導致永久卡死
-				const timer = setTimeout(() => {
-					ReconnectRequest = false;
-				}, 5000);
+				// 1. 清除舊的超時定時器
+				if (requestTimeout) clearTimeout(requestTimeout);
 
+				// 2. 設置 6 秒超時保護：若 6 秒內未成功回應，強制釋放請求狀態
+				requestTimeout = setTimeout(() => {
+					isConnecting = false;
+					retryCount++;
+					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[超時重試 ${retryCount}]</span> ` + formatTitle(item.title);
+				}, 6000);
+
+				// 3. 綁定載入成功事件
 				img.onload = function() {
-					clearTimeout(timer);
-					ReconnectRequest = false;
+					if (requestTimeout) clearTimeout(requestTimeout);
+					isConnecting = false;
 					
 					if (isFrozen) {
 						isFrozen = false;
@@ -558,6 +573,7 @@
 					lastUpdate = Date.now();
 					retryCount = 0;
 					
+					// 畫到 Canvas 避免畫面閃爍
 					if (img.naturalWidth && img.naturalHeight) {
 						canvas.width = img.naturalWidth;
 						canvas.height = img.naturalHeight;
@@ -567,59 +583,64 @@
 					}
 				};
 
+				// 4. 綁定載入失敗事件
 				img.onerror = function() {
-					clearTimeout(timer);
-					ReconnectRequest = false;
+					if (requestTimeout) clearTimeout(requestTimeout);
+					isConnecting = false;
 					retryCount++;
 					titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
 				};
 
-				// 發起帶有時間戳記的新請求
-				img.src = item.src + '&refresh=' + Date.now();
+				// 5. 【關鍵】先切斷舊連線，再發起新連線，避免瀏覽器連線數塞滿
+				img.src = ""; 
+				img.src = getRefreshUrl(item.src);
 			}
 
+			// 強制重設並刷新
 			function forceResetAndRefresh() {
 				isFrozen = false;
 				retryCount = 0;
-				ReconnectRequest = false;
+				isConnecting = false;
+				if (requestTimeout) clearTimeout(requestTimeout);
+
 				box.classList.remove('box-frozen');
 				titleDiv.innerHTML = formatTitle(item.title);
 				img.style.display = 'block';
-				lastUpdate = Date.now();
-				img.src = item.src + '&forceRefresh=' + lastUpdate;
+				
+				Refresh();
 			}
 
 			cameraControllers.push({
 				boxElement: box,
 				forceReset: forceResetAndRefresh,
 				refreshIfFrozen: function() {
-					const isInView = box.getAttribute('data-in-view') === 'true';
-					if (isFrozen && isInView) {
+					if (isFrozen && box.getAttribute('data-in-view') === 'true') {
 						Refresh();
 					}
 				},
 				refreshIfInView: function() {
-					const isInView = box.getAttribute('data-in-view') === 'true';
-					if (isInView) {
+					if (box.getAttribute('data-in-view') === 'true') {
 						Refresh();
 					}
 				}
 			});
 
+			// 檢查是否長時間未更新（12秒未更新才判定凍結，給予網路波動緩衝空間）
 			const freezeTimer = setInterval(function() {
-				if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
+				if (!isFrozen && (Date.now() - lastUpdate > 12000)) {
 					retryCount = 0;
 					freezeThisCamera();
 				}
 			}, 6000);
 
-			// 【方案 2】：加入 0~2 秒隨機錯開（Stagger）時間，避免所有 CCTV 在同一秒擠爆連線
+			// 錯開初始請求時間 (0 ~ 2 秒隨機)，避免瞬間流量暴增
 			const randomOffset = Math.floor(Math.random() * 2000);
 			
 			const delayTimeout = setTimeout(() => {
+				// 每 7.5 秒發起一次新連線（剛好在 8 秒伺服器切斷前/後進行接續）
 				const refreshTimer = setInterval(function() {
 					Refresh();
-				}, 8000);
+				}, 7500);
 				activeTimers.push(refreshTimer);
 			}, randomOffset);
 
