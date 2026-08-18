@@ -629,6 +629,13 @@
         loadCCTVData();
     }
 
+	// 輔助函式：安全地為 URL 附加時間戳記，避免 URL 格式壞掉
+	function getRefreshUrl(baseUrl) {
+		const hasQuery = baseUrl.includes('?');
+		const separator = hasQuery ? '&' : '?';
+		return `${baseUrl}${separator}_t=${Date.now()}`;
+	}
+
     function loadCCTVData() {
         activeTimers.forEach(timer => clearInterval(timer));
         activeTimers = [];
@@ -714,7 +721,9 @@
                 titleDiv.innerHTML = formatTitle(item.title);
                 img.style.display = 'block';
                 lastUpdate = Date.now();
-                img.src = item.src + '&forceRefresh=' + lastUpdate;
+				img.src = ""; 
+				img.src = getRefreshUrl(item.src);
+				// img.src = item.src + '&forceRefresh=' + lastUpdate;
             }
 
             function Refresh() {
@@ -746,7 +755,8 @@
                     titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
                     ReconnectRequest = false;
                 };
-                testImg.src = item.src + '&test=' + new Date().getTime();
+				testImg.src = getRefreshUrl(item.src);
+                // testImg.src = item.src + '&test=' + new Date().getTime();
             }
             
             cameraControllers.push({
