@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像 1718</title>
+    <title>南崁 - 竹北 國一即時影像 1955</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -607,9 +607,13 @@
     }
 
     function clearCCTVData() {
-        activeTimers.forEach(timer => clearInterval(timer));
-        activeTimers = [];
+		activeTimers.forEach(timer => {
+			clearInterval(timer);
+			clearTimeout(timer);
+		});
+		activeTimers = [];
         cameraControllers.length = 0;
+		if (observer) observer.disconnect(); // 避免舊節點洩漏
         container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
     }
 
@@ -1074,8 +1078,15 @@ let resetGpsTimer = null;
             badge.classList.add('show');
         }
 
-        window.addEventListener('scroll', function() {
-            updateBadge();
+        let isTicking = false;
+		window.addEventListener('scroll', function() {
+			if (!isTicking) {
+				window.requestAnimationFrame(() => {
+					updateBadge();
+					isTicking = false;
+				});
+				isTicking = true;
+			}
 
             if (typeof resetGpsTimer === 'function') {
                 resetGpsTimer();
