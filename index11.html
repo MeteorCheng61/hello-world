@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像0818</title>
+    <title>南崁 - 竹北 國一即時影像 0818</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -248,14 +248,14 @@
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
-<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
-<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
+<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">?</div>
 
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
 <div class="floating-segment-btn prev-segment-btn" id="prevSegmentBtn"></div>
 <div class="floating-segment-btn next-segment-btn" id="nextSegmentBtn"></div>
 
-<h2 id="pageTitle">🛣️ 國道即時影像</h2>
+<h2 id="pageTitle">?️ 國道即時影像</h2>
 
 <!-- 道路與區間下拉選單容器 -->
 <div class="selector-container" id="selectorContainer">
@@ -618,7 +618,7 @@
         const selectedSegment = segmentSelect.value;
 
         if (!selectedRoad || !selectedSegment || !All_Data[selectedRoad] || !All_Data[selectedRoad][selectedSegment]) {
-            document.getElementById('pageTitle').innerText = `🛣️ 國道即時影像`;
+            document.getElementById('pageTitle').innerText = `?️ 國道即時影像`;
             cctvData = [];
             clearCCTVData();
             return;
@@ -825,7 +825,7 @@ let resetGpsTimer = null;
         function updateArrowIcon(lat1, lon1, lat2, lon2) {
             const dist = getDistanceKm(lat1, lon1, lat2, lon2);
             if (dist < 0.005) {
-                gpsBtn.innerText = '🧭';
+                gpsBtn.innerText = '?';
                 return;
             }
 
