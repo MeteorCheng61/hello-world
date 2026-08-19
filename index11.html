@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 0318</title>
+	<title>南崁 - 竹北 國一即時影像 1116</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -116,6 +116,7 @@
 			align-items: center;
 			font-size: 24px;
 			user-select: none;
+			/* 新增以下過渡與隱藏設定 */
 			transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.3s ease;
 			opacity: 0;
 			pointer-events: none;
@@ -151,6 +152,7 @@
 			align-items: center;
 			font-size: 26px;
 			user-select: none;
+			/* 新增以下過渡與隱藏設定 */
 			transition: background-color 0.3s ease, transform 0.2s ease, opacity 0.3s ease;
 			opacity: 0;
 			pointer-events: none;
@@ -170,6 +172,29 @@
 		}
 		.floating-gps-btn:active {
 			transform: scale(0.95);
+		}
+
+		.gps-mile-badge {
+			position: fixed;
+			top: 10px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: #81c784; /* 淺綠底 */
+			color: #ffffff; /* 白字 */
+			padding: 6px 16px;
+			border-radius: 20px;
+			font-size: 18px;
+			font-weight: bold;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+			z-index: 10000;
+			pointer-events: none;
+			transition: opacity 0.3s ease;
+			opacity: 0;
+			white-space: nowrap;
+		}
+
+		.gps-mile-badge.show {
+			opacity: 1;
 		}
 
 		.scroll-percent-badge {
@@ -196,30 +221,6 @@
 			transform: translateY(0);
 		}		
 
-		/* 最上方正中央的當前里程浮動標籤 */
-		.floating-mileage-badge {
-			position: fixed;
-			top: 10px;
-			left: 50%;
-			transform: translateX(-50%);
-			background-color: rgba(211, 47, 47, 0.9);
-			color: #ffffff;
-			padding: 6px 16px;
-			border-radius: 20px;
-			font-size: 20px;
-			font-weight: bold;
-			box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-			z-index: 9999;
-			pointer-events: none;
-			transition: opacity 0.3s ease, transform 0.3s ease;
-			opacity: 0;
-			white-space: nowrap;
-		}
-
-		.floating-mileage-badge.show {
-			opacity: 1;
-		}
-
 		.right-scroll-zone {
 			position: fixed;
 			top: 0;
@@ -239,7 +240,7 @@
 			color: #666;
 			padding: 40px 0;
 		}
-
+		/* 上一區段 / 下一區段 懸浮按鈕通用樣式 */
 		.floating-segment-btn {
 			position: fixed;
 			background-color: #1b5e20;
@@ -271,16 +272,19 @@
 			transform: scale(0.95);
 		}
 
+		/* 右上角：上一區段 */
 		.prev-segment-btn {
 			top: 10px;
-			right: 60px;
+			right: 60px; /* 避開右上角的重新整理按鈕 */
 		}
 
+		/* 右下角：下一區段 */
 		.next-segment-btn {
 			bottom: 20px;
 			right: 10px;
 		}
 
+		/* 下方正中央：全螢幕 / 取消全螢幕 懸浮按鈕 */
 		.floating-fullscreen-btn {
 			position: fixed;
 			bottom: 20px;
@@ -324,17 +328,18 @@
 
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
 <div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div id="gpsMileBadge" class="gps-mile-badge">里程：-- K</div><div id="gpsMileBadge" class="gps-mile-badge">里程：-- K</div>
+
 
 <div class="floating-fullscreen-btn" id="fullscreenToggleBtn">⛶</div>
 
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
-<div id="floatingMileageBadge" class="floating-mileage-badge">📍 0.0 K</div>
-
 <div class="floating-segment-btn prev-segment-btn" id="prevSegmentBtn"></div>
 <div class="floating-segment-btn next-segment-btn" id="nextSegmentBtn"></div>
 
 <h2 id="pageTitle">🛣️ 國道即時影像</h2>
 
+<!-- 道路與區間下拉選單容器 -->
 <div class="selector-container" id="selectorContainer">
 	<select id="roadSelect"></select>
 	<select id="segmentSelect"></select>
@@ -625,12 +630,13 @@
 		}
 
 		onRoadChange();
-
+		
+		// 檢查 Def_Road 與 Def_Section 是否存在於 All_Data 中，若存在則設定並載入
 		if (Def_Road && Def_Section && All_Data[Def_Road] && All_Data[Def_Road][Def_Section]) {
 			roadSelect.value = Def_Road;
-			onRoadChange();
+			onRoadChange(); // 重新觸發 segmentSelect 的選項建構
 			segmentSelect.value = Def_Section;
-			onSegmentChange();
+			onSegmentChange(); // 載入預設的 cctvData
 		}
 	}
 
@@ -659,10 +665,12 @@
 		segmentKeys.forEach(segment => {
 			const opt = document.createElement('option');
 			opt.value = segment;
+			// 計算該區段中 title 為非空值的數量
 			const validTitleCount = All_Data[selectedRoad][segment].filter(
 				item => item.title && item.title.trim() !== ''
 			).length;
 
+			// 於選單文字加上數量標籤
 			opt.textContent = `${segment} (${validTitleCount})`;
 			segmentSelect.appendChild(opt);
 		});
@@ -681,7 +689,7 @@
 		});
 		activeTimers = [];
 		cameraControllers.length = 0;
-		if (observer) observer.disconnect();
+		if (observer) observer.disconnect(); // 避免舊節點洩漏
 		container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
 	}
 
@@ -854,9 +862,10 @@
 	let resetGpsTimer = null;
 	(function() {
 		const gpsBtn = document.getElementById('gpsToggleBtn');
-		const mileageBadge = document.getElementById('floatingMileageBadge');
+		const mileBadge = document.getElementById('gpsMileBadge'); // 新增里程標籤元素
 		let isGpsActive = false;
 		let gpsTimer = null;
+		let mileUpdateTimer = null; // 新增 2 秒里程更新 Timer
 		let lastCoords = null;
 
 		function getDistanceKm(lat1, lon1, lat2, lon2) {
@@ -901,63 +910,55 @@
 			}
 		}
 
-		// 計算當前 GPS 點與兩張影像間的里程內插值
-		function updateCurrentMileage(currentLat, currentLon, closestIndex) {
-			if (!cctvData || cctvData.length === 0 || closestIndex === -1) return;
+		// 計算當前里程的關鍵邏輯
+		function updateCurrentMile(currentLat, currentLon) {
+			if (!cctvData || cctvData.length === 0) return;
 
-			let prevItem = null;
-			let nextItem = null;
+			// 依序計算每一個影像點與當前 GPS 的距離
+			const validData = cctvData.map((item, index) => ({ item, index }))
+				.filter(d => d.item.lat && d.item.lon && d.item.locationMiles);
 
-			// 找出最近節點的前一個有效節點與後一個有效節點
-			for (let i = closestIndex; i >= 0; i--) {
-				if (cctvData[i] && cctvData[i].lat && cctvData[i].lon && cctvData[i].locationMiles) {
-					if (!prevItem) prevItem = cctvData[i];
-					else if (prevItem && cctvData[i].locationMiles !== prevItem.locationMiles) {
-						// 找到不同座標點作為上一點
-						break;
-					}
+			if (validData.length === 0) return;
+
+			let minDist = Infinity;
+			let closestIdx = -1;
+
+			validData.forEach((d, i) => {
+				const dist = getDistanceKm(currentLat, currentLon, parseFloat(d.item.lat), parseFloat(d.item.lon));
+				if (dist < minDist) {
+					minDist = dist;
+					closestIdx = i;
 				}
-			}
+			});
 
-			for (let i = closestIndex; i < cctvData.length; i++) {
-				if (cctvData[i] && cctvData[i].lat && cctvData[i].lon && cctvData[i].locationMiles) {
-					if (!nextItem) nextItem = cctvData[i];
-					else if (nextItem && cctvData[i].locationMiles !== nextItem.locationMiles) {
-						break;
-					}
-				}
-			}
+			if (closestIdx === -1) return;
 
-			// 若只有單點可參考，直接取該點里程
-			if (!prevItem && !nextItem) return;
-			if (!prevItem) prevItem = nextItem;
-			if (!nextItem) nextItem = prevItem;
+			const currentPoint = validData[closestIdx];
+			let prevPoint = validData[closestIdx - 1];
+			let nextPoint = validData[closestIdx + 1];
 
-			const m1 = parseFloat(prevItem.locationMiles);
-			const m2 = parseFloat(nextItem.locationMiles);
-
-			if (m1 === m2) {
-				mileageBadge.innerText = `📍 ${m1.toFixed(1)} K`;
-				mileageBadge.classList.add('show');
+			// 若無前一點或後一點，則取鄰近點作為參考區段
+			if (!prevPoint && nextPoint) prevPoint = currentPoint;
+			if (!nextPoint && prevPoint) nextPoint = currentPoint;
+			if (!prevPoint && !nextPoint) {
+				mileBadge.innerText = `里程：${parseFloat(currentPoint.item.locationMiles).toFixed(1)} K`;
 				return;
 			}
 
-			const lat1 = parseFloat(prevItem.lat);
-			const lon1 = parseFloat(prevItem.lon);
-			const lat2 = parseFloat(nextItem.lat);
-			const lon2 = parseFloat(nextItem.lon);
+			const dPrev = getDistanceKm(currentLat, currentLon, parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon));
+			const dNext = getDistanceKm(currentLat, currentLon, parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon));
 
-			const d1 = getDistanceKm(currentLat, currentLon, lat1, lon1);
-			const d2 = getDistanceKm(currentLat, currentLon, lat2, lon2);
+			const mPrev = parseFloat(prevPoint.item.locationMiles);
+			const mNext = parseFloat(nextPoint.item.locationMiles);
 
-			let calculatedMiles = m1;
-			if (d1 + d2 > 0) {
-				const ratio = d1 / (d1 + d2);
-				calculatedMiles = m1 + (m2 - m1) * ratio;
+			let calculatedMile = mPrev;
+			if (dPrev + dNext > 0) {
+				// 依據距離比例線性內插計算當前里程
+				const ratio = dPrev / (dPrev + dNext);
+				calculatedMile = mPrev + (mNext - mPrev) * ratio;
 			}
 
-			mileageBadge.innerText = `📍 ${calculatedMiles.toFixed(1)} K`;
-			mileageBadge.classList.add('show');
+			mileBadge.innerText = `里程：${calculatedMile.toFixed(1)} K`;
 		}
 
 		function trackAndScroll() {
@@ -977,6 +978,9 @@
 					}
 					lastCoords = { lat: currentLat, lon: currentLon };
 
+					// 立即計算並更新一次里程
+					updateCurrentMile(currentLat, currentLon);
+
 					let minDistance = Infinity;
 					let closestIndex = -1;
 
@@ -988,11 +992,6 @@
 							closestIndex = idx;
 						}
 					});
-
-					// 更新最上方當前里程標籤
-					if (closestIndex !== -1) {
-						updateCurrentMileage(currentLat, currentLon, closestIndex);
-					}
 
 					if (minDistance > 2) {
 						let globalMinDist = Infinity;
@@ -1101,18 +1100,32 @@
 			isGpsActive = true;
 			gpsBtn.classList.add('active');
 			gpsBtn.innerText = '🧭';
+			mileBadge.classList.add('show'); // 顯示里程標籤
+
 			trackAndScroll();
 			gpsTimer = setInterval(trackAndScroll, 10000);
+
+			// 每 2 秒根據最新的 GPS 經緯度重新更新一次當前里程
+			mileUpdateTimer = setInterval(function() {
+				if (lastCoords) {
+					updateCurrentMile(lastCoords.lat, lastCoords.lon);
+				}
+			}, 2000);
 		}
 
 		function stopGps() {
 			isGpsActive = false;
 			gpsBtn.classList.remove('active');
 			gpsBtn.innerText = '🧭';
-			mileageBadge.classList.remove('show');
+			mileBadge.classList.remove('show'); // 隱藏里程標籤
+
 			if (gpsTimer) {
 				clearInterval(gpsTimer);
 				gpsTimer = null;
+			}
+			if (mileUpdateTimer) {
+				clearInterval(mileUpdateTimer);
+				mileUpdateTimer = null;
 			}
 			lastCoords = null;
 		}
@@ -1360,18 +1373,22 @@
 		const gpsBtn = document.getElementById('gpsToggleBtn');
 		let btnHideTimeout = null;
 
+		// 檢查瀏覽器是否支援全螢幕功能及 fullscreenchange 事件
 		function supportsFullscreenChange() {
 			return 'onfullscreenchange' in document || 'onwebkitfullscreenchange' in document || 'msfullscreenchange' in document;
 		}
 
+		// 若不支援全螢幕，直接隱藏全螢幕按鈕
 		if (!supportsFullscreenChange()) {
 			fullscreenBtn.style.display = 'none';
 		}
 
+		// 判斷是否為行動裝置
 		function isMobileDevice() {
 			return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 		}
 
+		// 檢查目前是否處於全螢幕狀態
 		function isFullscreen() {
 			return !!(
 				document.fullscreenElement || 
@@ -1381,6 +1398,7 @@
 			);
 		}
 
+		// 更新全螢幕按鈕圖示與狀態
 		function updateFullscreenBtnText() {
 			if (isFullscreen()) {
 				fullscreenBtn.innerHTML = '🗗';
@@ -1389,10 +1407,13 @@
 			}
 		}
 
+		// 統一的滾動處理函式
 		function handleScroll() {
+			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
 			gpsBtn.classList.add('show');
 
+			// 2. 處理全螢幕按鈕顯示 (行動裝置且為全螢幕時隱藏)
 			if (supportsFullscreenChange()) {
 				if (isMobileDevice() && isFullscreen()) {
 					fullscreenBtn.classList.remove('show');
@@ -1402,10 +1423,12 @@
 				}
 			}
 
+			// 3. 統一清除舊的定時器
 			if (btnHideTimeout !== null) {
 				clearTimeout(btnHideTimeout);
 			}
 
+			// 4. 停止滑動 2.5 秒後統一自動隱藏所有按鈕
 			btnHideTimeout = setTimeout(function() {
 				refreshBtn.classList.remove('show');
 				gpsBtn.classList.remove('show');
@@ -1413,6 +1436,7 @@
 			}, 2500);
 		}
 
+		// 點擊全螢幕按鈕切換邏輯
 		fullscreenBtn.addEventListener('click', function() {
 			if (!isFullscreen()) {
 				const docEl = document.documentElement;
@@ -1434,9 +1458,11 @@
 			}
 		});
 
+		// 監聽全螢幕狀態切換事件
 		document.addEventListener('fullscreenchange', updateFullscreenBtnText);
 		document.addEventListener('webkitfullscreenchange', updateFullscreenBtnText);
 
+		// 註冊唯一的滾動事件監聽
 		window.addEventListener('scroll', handleScroll);
 	})();
 
