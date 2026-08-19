@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1020</title>
+	<title>南崁 - 竹北 國一即時影像 1041</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1262,15 +1262,20 @@ let resetGpsTimer = null;
 		const fullscreenBtn = document.getElementById('fullscreenToggleBtn');
 		let fsHideTimeout = null;
 
-		// 判斷是否為 iOS 裝置 (iPhone, iPad, iPod)
-		function isIOS() {
-			return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-				(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+		// 檢查瀏覽器是否支援全螢幕功能及 fullscreenchange 事件[cite: 1]
+		function supportsFullscreenChange() {
+			return 'onfullscreenchange' in document || 'onwebkitfullscreenchange' in document || 'msfullscreenchange' in document;
+		}
+
+		// 若沒有原生 fullscreenchange 事件支援，直接將按鈕隱藏並中斷載入[cite: 1]
+		if (!supportsFullscreenChange()) {
+			fullscreenBtn.style.display = 'none';
+			return;
 		}
 
 		// 判斷是否為行動裝置 (iPhone, iPad, iPod, Android)
 		function isMobileDevice() {
-			return isIOS() || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+			return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 		}
 
 		// 檢查目前是否處於全螢幕狀態
@@ -1282,19 +1287,6 @@ let resetGpsTimer = null;
 				// 針對 iOS Safari 特有全螢幕 API 的相容檢查
 				(window.navigator.standalone)
 			);
-			if (standardFS) return true;
-
-			// 2. 針對 iOS / 行動裝置 Safari 的視埠高度判定
-			// 當 Safari 的網址列與工具列折疊/隱藏時，window.innerHeight 會極度接近或等於 screen.height
-			if (isMobileDevice()) {
-				const heightDiff = Math.abs(window.screen.height - window.innerHeight);
-				// 差異小於 60px 代表已進入 Safari 的滿版視圖 (Full-viewport)
-				if (heightDiff < 60) {
-					return true;
-				}
-			}
-
-			return false;
 		}
 
 		// 更新按鈕文字與狀態
@@ -1342,20 +1334,9 @@ let resetGpsTimer = null;
 					document.webkitExitFullscreen();
 				} else if (document.msExitFullscreen) {
 					document.msExitFullscreen();
-				} else {
-					// iOS Safari 手動回到頂部讓網址列重新出現
-					window.scrollTo({ top: 0, behavior: 'smooth' });
 				}
 			}
 		});
-
-		// 監聽全螢幕狀態與視窗尺寸變化 (Safari 網址列收合會觸發 resize)
-		function onFullscreenChange() {
-			updateFullscreenBtnText();
-			if (isMobileDevice() && isFullscreen()) {
-				fullscreenBtn.classList.remove('show');
-			}
-		}
 
 		// 監聽全螢幕狀態切換事件，確保文字即時變更
 		document.addEventListener('fullscreenchange', updateFullscreenBtnText);
