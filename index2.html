@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>國道即時影像</title>
+	<title>國道即時影像 0518</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -174,6 +174,29 @@
 			transform: scale(0.95);
 		}
 
+		.gps-mile-badge {
+			position: fixed;
+			top: 10px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: #038468; /* 淺綠底 */
+			color: #ffffff; /* 白字 */
+			padding: 3px 3px;
+			border-radius: 6px;
+			font-size: 24px;
+			font-weight: bold;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+			z-index: 10000;
+			pointer-events: none;
+			transition: opacity 0.3s ease;
+			opacity: 0;
+			white-space: nowrap;
+		}
+
+		.gps-mile-badge.show {
+			opacity: 1;
+		}
+
 		.scroll-percent-badge {
 			position: fixed;
 			top: 10px;
@@ -301,8 +324,11 @@
 <body>
 <div id="rightScrollZone" class="right-scroll-zone"></div>
 
+<a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
+
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
 <div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div id="gpsMileBadge" class="gps-mile-badge">--</div>
 
 <div class="floating-fullscreen-btn" id="fullscreenToggleBtn">⛶</div>
 
@@ -3612,8 +3638,10 @@
 	let resetGpsTimer = null;
 	(function() {
 		const gpsBtn = document.getElementById('gpsToggleBtn');
+		const mileBadge = document.getElementById('gpsMileBadge'); // 新增里程標籤元素
 		let isGpsActive = false;
 		let gpsTimer = null;
+		let mileUpdateTimer = null; // 新增 2 秒里程更新 Timer
 		let lastCoords = null;
 
 		function getDistanceKm(lat1, lon1, lat2, lon2) {
@@ -3658,6 +3686,57 @@
 			}
 		}
 
+		// 計算當前里程的關鍵邏輯
+		function updateCurrentMile(currentLat, currentLon) {
+			if (!cctvData || cctvData.length === 0) return;
+
+			// 依序計算每一個影像點與當前 GPS 的距離
+			const validData = cctvData.map((item, index) => ({ item, index }))
+				.filter(d => d.item.lat && d.item.lon && d.item.locationMiles);
+
+			if (validData.length === 0) return;
+
+			let minDist = Infinity;
+			let closestIdx = -1;
+
+			validData.forEach((d, i) => {
+				const dist = getDistanceKm(currentLat, currentLon, parseFloat(d.item.lat), parseFloat(d.item.lon));
+				if (dist < minDist) {
+					minDist = dist;
+					closestIdx = i;
+				}
+			});
+
+			if (closestIdx === -1) return;
+
+			const currentPoint = validData[closestIdx];
+			let prevPoint = validData[closestIdx - 1];
+			let nextPoint = validData[closestIdx + 1];
+
+			// 若無前一點或後一點，則取鄰近點作為參考區段
+			if (!prevPoint && nextPoint) prevPoint = currentPoint;
+			if (!nextPoint && prevPoint) nextPoint = currentPoint;
+			if (!prevPoint && !nextPoint) {
+				mileBadge.innerText = `${parseFloat(currentPoint.item.locationMiles).toFixed(1)}`;
+				return;
+			}
+
+			const dPrev = getDistanceKm(currentLat, currentLon, parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon));
+			const dNext = getDistanceKm(currentLat, currentLon, parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon));
+
+			const mPrev = parseFloat(prevPoint.item.locationMiles);
+			const mNext = parseFloat(nextPoint.item.locationMiles);
+
+			let calculatedMile = mPrev;
+			if (dPrev + dNext > 0) {
+				// 依據距離比例線性內插計算當前里程
+				const ratio = dPrev / (dPrev + dNext);
+				calculatedMile = mPrev + (mNext - mPrev) * ratio;
+			}
+
+			mileBadge.innerText = `${calculatedMile.toFixed(1)}`;
+		}
+
 		function trackAndScroll() {
 			if (!navigator.geolocation) {
 				alert('您的瀏覽器不支援 GPS 地理定位功能');
@@ -3674,6 +3753,9 @@
 						updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
 					}
 					lastCoords = { lat: currentLat, lon: currentLon };
+
+					// 立即計算並更新一次里程
+					updateCurrentMile(currentLat, currentLon);
 
 					let minDistance = Infinity;
 					let closestIndex = -1;
@@ -3794,17 +3876,32 @@
 			isGpsActive = true;
 			gpsBtn.classList.add('active');
 			gpsBtn.innerText = '🧭';
+			mileBadge.classList.add('show'); // 顯示里程標籤
+
 			trackAndScroll();
 			gpsTimer = setInterval(trackAndScroll, 10000);
+
+			// 每 2 秒根據最新的 GPS 經緯度重新更新一次當前里程
+			mileUpdateTimer = setInterval(function() {
+				if (lastCoords) {
+					updateCurrentMile(lastCoords.lat, lastCoords.lon);
+				}
+			}, 2000);
 		}
 
 		function stopGps() {
 			isGpsActive = false;
 			gpsBtn.classList.remove('active');
 			gpsBtn.innerText = '🧭';
+			mileBadge.classList.remove('show'); // 隱藏里程標籤
+
 			if (gpsTimer) {
 				clearInterval(gpsTimer);
 				gpsTimer = null;
+			}
+			if (mileUpdateTimer) {
+				clearInterval(mileUpdateTimer);
+				mileUpdateTimer = null;
 			}
 			lastCoords = null;
 		}
