@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1106</title>
+	<title>南崁 - 竹北 國一即時影像 1116</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1279,20 +1279,21 @@
 
 	(function() {
 		const fullscreenBtn = document.getElementById('fullscreenToggleBtn');
-		let fsHideTimeout = null;
+		const refreshBtn = document.getElementById('globalRefreshBtn');
+		const gpsBtn = document.getElementById('gpsToggleBtn');
+		let btnHideTimeout = null;
 
-		// 檢查瀏覽器是否支援全螢幕功能及 fullscreenchange 事件[cite: 1]
+		// 檢查瀏覽器是否支援全螢幕功能及 fullscreenchange 事件
 		function supportsFullscreenChange() {
 			return 'onfullscreenchange' in document || 'onwebkitfullscreenchange' in document || 'msfullscreenchange' in document;
 		}
 
-		// 若沒有原生 fullscreenchange 事件支援，直接將按鈕隱藏並中斷載入[cite: 1]
+		// 若不支援全螢幕，直接隱藏全螢幕按鈕
 		if (!supportsFullscreenChange()) {
 			fullscreenBtn.style.display = 'none';
-			return;
 		}
 
-		// 判斷是否為行動裝置 (iPhone, iPad, iPod, Android)
+		// 判斷是否為行動裝置
 		function isMobileDevice() {
 			return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 		}
@@ -1303,12 +1304,11 @@
 				document.fullscreenElement || 
 				document.webkitFullscreenElement || 
 				document.msFullscreenElement ||
-				// 針對 iOS Safari 特有全螢幕 API 的相容檢查
 				(window.navigator.standalone)
 			);
 		}
 
-		// 更新按鈕文字與狀態
+		// 更新全螢幕按鈕圖示與狀態
 		function updateFullscreenBtnText() {
 			if (isFullscreen()) {
 				fullscreenBtn.innerHTML = '🗗';
@@ -1317,31 +1317,42 @@
 			}
 		}
 
-		// 滾動時觸發顯示按鈕，並設超時自動隱藏
+		// 統一的滾動處理函式
 		function handleScroll() {
-			// 關鍵邏輯：如果是 iPhone/Android 且「已經是全螢幕」，則直接隱藏按鈕不顯示
-			if (isMobileDevice() && isFullscreen()) {
-				fullscreenBtn.classList.remove('show');
-				return;
+			// 1. 處理重新整理與 GPS 按鈕顯示
+			refreshBtn.classList.add('show');
+			gpsBtn.classList.add('show');
+
+			// 2. 處理全螢幕按鈕顯示 (行動裝置且為全螢幕時隱藏)
+			if (supportsFullscreenChange()) {
+				if (isMobileDevice() && isFullscreen()) {
+					fullscreenBtn.classList.remove('show');
+				} else {
+					updateFullscreenBtnText();
+					fullscreenBtn.classList.add('show');
+				}
 			}
 
-			updateFullscreenBtnText();
-			fullscreenBtn.classList.add('show');
+			// 3. 統一清除舊的定時器
+			if (btnHideTimeout !== null) {
+				clearTimeout(btnHideTimeout);
+			}
 
-			if (fsHideTimeout !== null) clearTimeout(fsHideTimeout);
-
-			fsHideTimeout = setTimeout(function() {
+			// 4. 停止滑動 2.5 秒後統一自動隱藏所有按鈕
+			btnHideTimeout = setTimeout(function() {
+				refreshBtn.classList.remove('show');
+				gpsBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
 			}, 2500);
 		}
 
-		// 點擊按鈕進行全螢幕切換
+		// 點擊全螢幕按鈕切換邏輯
 		fullscreenBtn.addEventListener('click', function() {
 			if (!isFullscreen()) {
 				const docEl = document.documentElement;
 				if (docEl.requestFullscreen) {
 					docEl.requestFullscreen();
-				} else if (docEl.webkitRequestFullscreen) { /* Safari / iOS */
+				} else if (docEl.webkitRequestFullscreen) {
 					docEl.webkitRequestFullscreen();
 				} else if (docEl.msRequestFullscreen) {
 					docEl.msRequestFullscreen();
@@ -1357,37 +1368,11 @@
 			}
 		});
 
-		// 監聽全螢幕狀態切換事件，確保文字即時變更
+		// 監聽全螢幕狀態切換事件
 		document.addEventListener('fullscreenchange', updateFullscreenBtnText);
 		document.addEventListener('webkitfullscreenchange', updateFullscreenBtnText);
 
-		// 監聽滾動事件
-		window.addEventListener('scroll', handleScroll);
-	})();
-
-	(function() {
-		const refreshBtn = document.getElementById('globalRefreshBtn');
-		const gpsBtn = document.getElementById('gpsToggleBtn');
-		let btnHideTimeout = null;
-
-		function handleScroll() {
-			// 滑動時顯示按鈕
-			refreshBtn.classList.add('show');
-			gpsBtn.classList.add('show');
-
-			// 清除舊的定時器
-			if (btnHideTimeout !== null) {
-				clearTimeout(btnHideTimeout);
-			}
-
-			// 停止滑動 2.5 秒後自動隱藏
-			btnHideTimeout = setTimeout(function() {
-				refreshBtn.classList.remove('show');
-				gpsBtn.classList.remove('show');
-			}, 2500);
-		}
-
-		// 監聽滾動事件
+		// 註冊唯一的滾動事件監聽
 		window.addEventListener('scroll', handleScroll);
 	})();
 
