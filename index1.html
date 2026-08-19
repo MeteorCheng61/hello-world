@@ -1,203 +1,222 @@
 <!DOCTYPE html>
 <html lang="zh-Hant-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南崁 - 竹北 國一即時影像</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 15px;
-        }
-        h2 {
-            text-align: center;
-            color: #1b5e20;
-            margin-bottom: 15px;
-            font-size: 24px;
-        }
-        .selector-container {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .selector-container select {
-            padding: 8px 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            outline: none;
-            cursor: pointer;
-        }
-        .cctv-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            max-width: 100%;
-            margin: 0 auto;
-        }
-        .cctv-box {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            overflow: hidden;
-            background: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        .cctv-title {
-            padding: 6px 10px;
-            font-weight: bold;
-            font-size: 20px;
-            color: #444;
-            background: #f8f9fa;
-            border-bottom: 1px solid #eee;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        .cctv-title:hover {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>南崁 - 竹北 國一即時影像</title>
+	<style>
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			background-color: #f0f2f5;
+			margin: 0;
+			padding: 15px;
+		}
+		h2 {
+			text-align: center;
+			color: #1b5e20;
+			margin-bottom: 15px;
+			font-size: 24px;
+		}
+		.selector-container {
+			display: flex;
+			justify-content: center;
+			gap: 10px;
+			margin-bottom: 15px;
+			flex-wrap: wrap;
+		}
+		.selector-container select {
+			padding: 8px 12px;
+			font-size: 16px;
+			border-radius: 6px;
+			border: 1px solid #ccc;
+			background-color: #fff;
+			outline: none;
+			cursor: pointer;
+		}
+		.cctv-grid {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 12px;
+			max-width: 100%;
+			margin: 0 auto;
+		}
+		.cctv-box {
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			overflow: hidden;
+			background: #ffffff;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+			display: flex;
+			flex-direction: column;
+			position: relative;
+		}
+		.cctv-title {
+			padding: 6px 10px;
+			font-weight: bold;
+			font-size: 20px;
+			color: #444;
+			background: #f8f9fa;
+			border-bottom: 1px solid #eee;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			text-align: center;
+			cursor: pointer;
+			transition: background-color 0.2s ease, color 0.2s ease;
+		}
+		.cctv-title:hover {
+			background-color: #e8f5e9;
+			color: #2e7d32;
+		}
 
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 352 / 240;
-            background: #000;
-        }
-        .cctv-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 2;
-        }
-        .cctv-canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        .box-frozen {
-            filter: grayscale(40%) brightness(90%);
-        }
-        .floating-refresh-btn {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 40px;
-            height: 40px;
-            background-color: #1b5e20;
-            color: white;
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            transition: background-color 0.2s ease, transform 0.2s ease;
-            user-select: none;
-        }
-        .floating-refresh-btn:hover {
-            background-color: #2e7d32;
-            transform: scale(1.08);
-        }
-        .floating-refresh-btn:active {
-            transform: scale(0.95);
-        }
+		.video-wrapper {
+			position: relative;
+			width: 100%;
+			aspect-ratio: 352 / 240;
+			background: #000;
+		}
+		.cctv-img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			display: block;
+			position: absolute;
+			top: 0;
+			left: 0;
+			z-index: 2;
+		}
+		.cctv-canvas {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			display: block;
+			position: absolute;
+			top: 0;
+			left: 0;
+			z-index: 1;
+		}
+		.box-frozen {
+			filter: grayscale(40%) brightness(90%);
+		}
 
-        .floating-gps-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 10px;
-            width: 48px;
-            height: 48px;
-            background-color: #fbc02d;
-            color: #333;
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 26px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            user-select: none;
-        }
-        .floating-gps-btn.active {
-            background-color: #4caf50;
-            color: white;
-        }
-        .floating-gps-btn:hover {
-            transform: scale(1.08);
-        }
-        .floating-gps-btn:active {
-            transform: scale(0.95);
-        }
+		.floating-refresh-btn {
+			position: fixed;
+			top: 10px;
+			right: 10px;
+			width: 40px;
+			height: 40px;
+			background-color: #1b5e20;
+			color: white;
+			border-radius: 50%;
+			box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+			cursor: pointer;
+			z-index: 9999;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 24px;
+			user-select: none;
+			/* 新增以下過渡與隱藏設定 */
+			transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.3s ease;
+			opacity: 0;
+			pointer-events: none;
+		}
 
-        .scroll-percent-badge {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background-color: rgba(27, 94, 32, 0.85);
-            color: #ffffff;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 36px;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-            z-index: 9999;
-            pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            opacity: 0;
-            transform: translateY(-5px);
-            white-space: pre-line;
-        }
+		.floating-refresh-btn.show {
+			opacity: 1;
+			pointer-events: auto;
+		}
 
-        .scroll-percent-badge.show {
-            opacity: 1;
-            transform: translateY(0);
-        }		
+		.floating-refresh-btn:hover {
+			background-color: #2e7d32;
+			transform: scale(1.08);
+		}
+		.floating-refresh-btn:active {
+			transform: scale(0.95);
+		}
 
-        .right-scroll-zone {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 10%;
-            height: 100vh;
-            z-index: 9990;
-            background: transparent;
-            touch-action: none;
-            cursor: ns-resize;
-        }
+		.floating-gps-btn {
+			position: fixed;
+			bottom: 20px;
+			left: 10px;
+			width: 48px;
+			height: 48px;
+			background-color: #fbc02d;
+			color: #333;
+			border-radius: 50%;
+			box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+			cursor: pointer;
+			z-index: 9999;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 26px;
+			user-select: none;
+			/* 新增以下過渡與隱藏設定 */
+			transition: background-color 0.3s ease, transform 0.2s ease, opacity 0.3s ease;
+			opacity: 0;
+			pointer-events: none;
+		}
 
-        .empty-prompt {
-            grid-column: 1 / -1;
-            text-align: center;
-            font-size: 18px;
-            color: #666;
-            padding: 40px 0;
-        }
+		.floating-gps-btn.show {
+			opacity: 1;
+			pointer-events: auto;
+		}
+
+		.floating-gps-btn.active {
+			background-color: #4caf50;
+			color: white;
+		}
+		.floating-gps-btn:hover {
+			transform: scale(1.08);
+		}
+		.floating-gps-btn:active {
+			transform: scale(0.95);
+		}
+
+		.scroll-percent-badge {
+			position: fixed;
+			top: 10px;
+			left: 10px;
+			background-color: rgba(27, 94, 32, 0.85);
+			color: #ffffff;
+			padding: 6px 12px;
+			border-radius: 20px;
+			font-size: 36px;
+			font-weight: bold;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+			z-index: 9991;
+			pointer-events: none;
+			transition: opacity 0.3s ease, transform 0.3s ease;
+			opacity: 0;
+			transform: translateY(-5px);
+			white-space: pre-line;
+		}
+
+		.scroll-percent-badge.show {
+			opacity: 1;
+			transform: translateY(0);
+		}		
+
+		.right-scroll-zone {
+			position: fixed;
+			top: 0;
+			right: 0;
+			width: 10%;
+			height: 100vh;
+			z-index: 9992;
+			background: transparent;
+			touch-action: none;
+			cursor: ns-resize;
+		}
+
+		.empty-prompt {
+			grid-column: 1 / -1;
+			text-align: center;
+			font-size: 18px;
+			color: #666;
+			padding: 40px 0;
+		}
 		/* 上一區段 / 下一區段 懸浮按鈕通用樣式 */
 		.floating-segment-btn {
 			position: fixed;
@@ -241,26 +260,62 @@
 			bottom: 20px;
 			right: 10px;
 		}
-    </style>
+
+		/* 下方正中央：全螢幕 / 取消全螢幕 懸浮按鈕 */
+		.floating-fullscreen-btn {
+			position: fixed;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: rgba(27, 94, 32, 0.9);
+			color: white;
+			padding: 10px 20px;
+			border-radius: 25px;
+			font-size: 16px;
+			font-weight: bold;
+			box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+			cursor: pointer;
+			z-index: 9999;
+			user-select: none;
+			transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.3s ease;
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.floating-fullscreen-btn.show {
+			opacity: 1;
+			pointer-events: auto;
+		}
+
+		.floating-fullscreen-btn:hover {
+			background-color: rgba(46, 125, 50, 1);
+			transform: translateX(-50%) scale(1.05);
+		}
+
+		.floating-fullscreen-btn:active {
+			transform: translateX(-50%) scale(0.95);
+		}
+
+	</style>
 </head>
 <body>
 <div id="rightScrollZone" class="right-scroll-zone"></div>
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
-<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
-<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
+<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">?</div>
 
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
 <div class="floating-segment-btn prev-segment-btn" id="prevSegmentBtn"></div>
 <div class="floating-segment-btn next-segment-btn" id="nextSegmentBtn"></div>
 
-<h2 id="pageTitle">🛣️ 國道即時影像</h2>
+<h2 id="pageTitle">?️ 國道即時影像</h2>
 
 <!-- 道路與區間下拉選單容器 -->
 <div class="selector-container" id="selectorContainer">
-    <select id="roadSelect"></select>
-    <select id="segmentSelect"></select>
+	<select id="roadSelect"></select>
+	<select id="segmentSelect"></select>
 </div>
 
 <div id="cctvGridContainer" class="cctv-grid"></div>
@@ -269,170 +324,192 @@
 		const All_Data = {
 			"國道1號": {
 				"南崁 - 竹北": [
-					{ title: "48K+595 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850", link: "https://www.twipcam.com/cam/n1b-s-48k-595", lon: "121.300821488545", lat: "25.0401041086768" },
-					{ title: "49K+493 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940", link: "https://www.twipcam.com/cam/n1b-n-49k-493", lon: "121.294226712553", lat: "25.0352555074755" },
+					{ title: "48K+595 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14850", link: "https://www.twipcam.com/cam/n1b-s-48k-595",lon: "121.300821488545",lat: "25.0401041086768",locationMiles: "48.595" },
+					{ title: "49K+493 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=14940", link: "https://www.twipcam.com/cam/n1b-n-49k-493",lon: "121.294226712553",lat: "25.0352555074755",locationMiles: "49.493" },
 
-					{ title: "50K+022 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000", link: "https://www.twipcam.com/cam/n1b-s-50k-022", lon: "121.289553301938", lat: "25.032948145601" },
-					{ title: "50K+571 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050", link: "https://www.twipcam.com/cam/n1b-n-50k-571", lon: "121.285273543452", lat: "25.0287984974398" },
+					{ title: "50K+022 南\n泰山轉接道-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15000", link: "https://www.twipcam.com/cam/n1b-s-50k-022",lon: "121.289553301938",lat: "25.032948145601",locationMiles: "50.022" },
+					{ title: "50K+571 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15050", link: "https://www.twipcam.com/cam/n1b-n-50k-571",lon: "121.285273543452",lat: "25.0287984974398",locationMiles: "50.571" },
 
-					{ title: "51K+380 南\n桃園-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15130", link: "https://www.twipcam.com/cam/n1-s-51k-380", lon: "121.280146644244", lat: "25.0247373473685" },
-					{ title: "51K+766 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15170", link: "https://www.twipcam.com/cam/n1b-n-51k-766", lon: "121.277393098253", lat: "25.0217973053596" },
+					{ title: "51K+380 南\n桃園-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15130", link: "https://www.twipcam.com/cam/n1-s-51k-380",lon: "121.280146644244",lat: "25.0247373473685",locationMiles: "51.380" },
+					{ title: "51K+766 北\n機場系統-泰山轉接道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15170", link: "https://www.twipcam.com/cam/n1b-n-51k-766",lon: "121.277393098253",lat: "25.0217973053596",locationMiles: "51.766" },
 
-					{ title: "53K+710 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15370", link: "https://www.twipcam.com/cam/n1b-s-53k-710", lon: "121.262466180474", lat: "25.0105904209109" },
-					{ title: "54K+323 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15430", link: "https://www.twipcam.com/cam/n1b-n-54k-323", lon: "121.258346440082", lat: "25.0066508171917" },
+					{ title: "53K+710 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15370", link: "https://www.twipcam.com/cam/n1b-s-53k-710",lon: "121.262466180474",lat: "25.0105904209109",locationMiles: "53.710" },
+					{ title: "54K+323 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15430", link: "https://www.twipcam.com/cam/n1b-n-54k-323",lon: "121.258346440082",lat: "25.0066508171917",locationMiles: "54.323" },
 
-					{ title: "56K+770 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15670", link: "https://www.twipcam.com/cam/n1b-s-56k-770", lon: "121.240349780017", lat: "24.9917357477833" },
-					{ title: "56K+585 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15650", link: "https://www.twipcam.com/cam/n1b-n-56k-585", lon: "121.242087867078", lat: "24.9927675170176" },
+					{ title: "56K+770 南\n機場系統-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15670", link: "https://www.twipcam.com/cam/n1b-s-56k-770",lon: "121.240349780017",lat: "24.9917357477833",locationMiles: "56.770" },
+					{ title: "56K+585 北\n中壢轉接一-機場系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15650", link: "https://www.twipcam.com/cam/n1b-n-56k-585",lon: "121.242087867078",lat: "24.9927675170176",locationMiles: "56.585" },
 
-					{ title: "58K+793 南\n中壢轉接一-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15871", link: "https://www.twipcam.com/cam/n1b-s-58k-793", lon: "121.226285290564", lat: "24.9785708842224" },
-					{ title: "58K+783 北\n中豐-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15870", link: "https://www.twipcam.com/cam/n1b-n-58k-783", lon: "121.22675454812", lat: "24.9785600673766" },
+					{ title: "58K+793 南\n中壢轉接一-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15871", link: "https://www.twipcam.com/cam/n1b-s-58k-793",lon: "121.226285290564",lat: "24.9785708842224",locationMiles: "58.793" },
+					{ title: "58K+783 北\n中豐-中壢轉接一", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=15870", link: "https://www.twipcam.com/cam/n1b-n-58k-783",lon: "121.22675454812",lat: "24.9785600673766",locationMiles: "58.783" },
 
-					{ title: "65K+024 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16501", link: "https://www.twipcam.com/cam/n1b-s-65k-024", lon: "121.188936607445", lat: "24.935966920739" },
-					{ title: "65K+000 北\n幼獅-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16500", link: "https://www.twipcam.com/cam/n1-n-65k-000", lon: "121.190265264309", lat: "24.9353678965988" },
+					{ title: "60K+200 南\n中豐-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16020", link: "https://www.twipcam.com/cam/n1b-s-60k-200",lon: "121.216143859537",lat: "24.9699523562029",locationMiles: "60.200" },
+					{ title: "60K+200 北\n中壢轉接二-中豐", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16021", link: "https://www.twipcam.com/cam/n1b-n-60k-200",lon: "121.216645348784",lat: "24.9699757640548",locationMiles: "60.200" },
 
-					{ title: "67K+000 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16700", link: "https://www.twipcam.com/cam/n1b-s-67k-000", lon: "121.171993043748", lat: "24.9264459978317" },
-					{ title: "67K+000 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16701", link: "https://www.twipcam.com/cam/n1b-n-67k-000", lon: "121.173668103468", lat: "24.9270314681164" },
+					{ title: "61K+100 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16110", link: "https://www.twipcam.com/cam/n1b-s-61k-100",lon: "121.208818724769",lat: "24.9645621393224",locationMiles: "61.100" },
+					{ title: "61K+708 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16170", link: "https://www.twipcam.com/cam/n1b-n-61k-708",lon: "121.205347810403",lat: "24.9617614274679",locationMiles: "61.708" },
 
-					{ title: "68K+340 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16830", link: "https://www.twipcam.com/cam/n1b-s-68k-340", lon: "121.16668857435", lat: "24.9161386099624" },
-					{ title: "69K+500 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16950", link: "https://www.twipcam.com/cam/n1b-n-69k-500", lon: "121.16309866276", lat: "24.9058457236362" },
+					{ title: "63K+045 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16300", link: "https://www.twipcam.com/cam/n1b-s-63k-045",lon: "121.196357441687",lat: "24.9520048800703",locationMiles: "63.045" },
+					{ title: "63K+265 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16320", link: "https://www.twipcam.com/cam/n1b-n-63k-265",lon: "121.19612014911",lat: "24.9502556516288",locationMiles: "63.265" },
 
-					{ title: "70K+500 南\n校前路-楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17051", link: "https://www.twipcam.com/cam/n1b-s-70k-500", lon: "121.154533208497", lat: "24.9014343354432" },
-					{ title: "70K+150 北\n高架楊梅端-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17010", link: "https://www.twipcam.com/cam/n1-n-70k-150", lon: "121.158208487916", lat: "24.9022932658399" },
+					{ title: "64K+000 南\n中壢-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16400", link: "https://www.twipcam.com/cam/n1-s-64k-000",lon: "121.193929894479",lat: "24.9437069282639",locationMiles: "64.000" },
+					{ title: "64K+360 北\n平鎮系統-中壢", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16430", link: "https://www.twipcam.com/cam/n1b-n-64k-360",lon: "121.193369973946",lat: "24.9406331948804",locationMiles: "64.360" },
 
-					{ title: "71K+400 南\n楊梅端-楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17140", link: "https://www.twipcam.com/cam/n1b-s-71k-000", lon: "121.146301302019", lat: "24.8993930000157" },
-					{ title: "71K+900 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17190", link: "https://www.twipcam.com/cam/n1-n-71k-900", lon: "121.141641488837", lat: "24.8976722866542" },
+					{ title: "65K+024 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16501", link: "https://www.twipcam.com/cam/n1b-s-65k-024",lon: "121.188936607445",lat: "24.935966920739",locationMiles: "65.024" },
+					{ title: "65K+000 北\n幼獅-平鎮系統", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16500", link: "https://www.twipcam.com/cam/n1-n-65k-000",lon: "121.190265264309",lat: "24.9353678965988",locationMiles: "65.000" },
 
-					{ title: "82K+020 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18200", link: "https://www.twipcam.com/cam/n1-s-82k-020", lon: "121.046711934978", lat: "24.8767808282936" },
-					{ title: "81K+100 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18110", link: "https://www.twipcam.com/cam/n1-n-81k-100", lon: "121.055774013345", lat: "24.8759695587227" },
+					{ title: "65K+920 南\n平鎮系統-幼獅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16590", link: "https://www.twipcam.com/cam/n1-s-65k-920",lon: "121.181858",lat: "24.931447",locationMiles: "65.920" },
+					{ title: "65K+500 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16550", link: "https://www.twipcam.com/cam/n1b-n-65k-500",lon: "121.186318395188",lat: "24.9328836223261",locationMiles: "65.500" },
 
-					{ title: "86K+090 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18602", link: "https://www.twipcam.com/cam/n1-s-86k-090", lon: "121.011854665565", lat: "24.8634589320427" },
-					{ title: "86K+000 北\n湖口服務區-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18600", link: "https://www.twipcam.com/cam/n1-n-86k-000", lon: "121.011851100303", lat: "24.8622701293522" },
+					{ title: "67K+000 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16700", link: "https://www.twipcam.com/cam/n1b-s-67k-000",lon: "121.171993043748",lat: "24.9264459978317",locationMiles: "67.000" },
+					{ title: "67K+000 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16701", link: "https://www.twipcam.com/cam/n1b-n-67k-000",lon: "121.173668103468",lat: "24.9270314681164",locationMiles: "67.000" },
 
-					{ title: "87K+050 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18700", link: "https://www.twipcam.com/cam/n1-s-87k-050", lon: "121.011719192066", lat: "24.854909184886" },
-					{ title: "87K+490 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18740", link: "https://www.twipcam.com/cam/n1-n-87k-490", lon: "121.015000084042", lat: "24.8521077730511" },
+					{ title: "68K+340 南\n中壢轉接二-校前路", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16830", link: "https://www.twipcam.com/cam/n1b-s-68k-340",lon: "121.16668857435",lat: "24.9161386099624",locationMiles: "68.340" },
+					{ title: "69K+500 北\n校前路-中壢轉接二", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=16950", link: "https://www.twipcam.com/cam/n1b-n-69k-500",lon: "121.16309866276",lat: "24.9058457236362",locationMiles: "69.500" },
 
-					{ title: "88K+590 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18850", link: "https://www.twipcam.com/cam/n1-s-88k-590", lon: "121.021456868119", lat: "24.8446587382532" },
-					{ title: "90K+010 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19000", link: "https://www.twipcam.com/cam/n1-n-90k-010", lon: "121.021577411746", lat: "24.8320935956756" },
+					{ title: "70K+500 南\n校前路-楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17051", link: "https://www.twipcam.com/cam/n1b-s-70k-500",lon: "121.154533208497",lat: "24.9014343354432",locationMiles: "70.500" },
+					{ title: "70K+150 北\n高架楊梅端-楊梅", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17010", link: "https://www.twipcam.com/cam/n1-n-70k-150",lon: "121.158208487916",lat: "24.9022932658399",locationMiles: "70.150" },
 
-					{ title: "91K+000 南\n竹北交流道", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19100", link: "https://www.twipcam.com/cam/n1-s-91k-000", lon: "121.017210341628", lat: "24.8238499411533" },
-					{ title: "90K+470 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90k-470", lon: "121.020098043065", lat: "24.8282095863834" },
+					{ title: "71K+000 南\n楊梅端-楊梅休息站", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17140", link: "https://www.twipcam.com/cam/n1b-s-71k-000",lon: "121.146301302019",lat: "24.8993930000157",locationMiles: "71.000" },
+					{ title: "71K+900 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17190", link: "https://www.twipcam.com/cam/n1-n-71k-900",lon: "121.141641488837",lat: "24.8976722866542",locationMiles: "71.900" },
+
+					{ title: "72K+675 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17260", link: "https://www.twipcam.com/cam/n1-s-72k-675",lon: "121.134362035068",lat: "24.8959075408124",locationMiles: "72.675" },
+					{ title: "73K+950 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17390", link: "https://www.twipcam.com/cam/n1-n-73k-950",lon: "121.122061984473",lat: "24.8929847712074",locationMiles: "73.950" },
+
+					{ title: "78K+600 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17860", link: "https://www.twipcam.com/cam/n1-s-78k-600",lon: "121.07808700366",lat: "24.8840622977995",locationMiles: "78.600" },
+					{ title: "79K+850 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=17980", link: "https://www.twipcam.com/cam/n1-n-79k-850",lon: "121.06768331731",lat: "24.8783685086336",locationMiles: "79.850" },
+
+					{ title: "82K+020 南\n高架楊梅端-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18200", link: "https://www.twipcam.com/cam/n1-s-82k-020",lon: "121.046711934978",lat: "24.8767808282936",locationMiles: "82.020" },
+					{ title: "81K+100 北\n湖口-高架楊梅端", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18110", link: "https://www.twipcam.com/cam/n1-n-81k-100",lon: "121.055774013345",lat: "24.8759695587227",locationMiles: "81.100" },
+
+					{ title: "86K+090 南\n湖口-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18602", link: "https://www.twipcam.com/cam/n1-s-86k-090",lon: "121.011854665565",lat: "24.8634589320427",locationMiles: "86.090" },
+					{ title: "86K+000 北\n湖口服務區-湖口", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18600", link: "https://www.twipcam.com/cam/n1-n-86k-000",lon: "121.011851100303",lat: "24.8622701293522",locationMiles: "86.000" },
+
+					{ title: "87K+050 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18700", link: "https://www.twipcam.com/cam/n1-s-87k-050",lon: "121.011719192066",lat: "24.854909184886",locationMiles: "87.050" },
+					{ title: "87K+490 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18740", link: "https://www.twipcam.com/cam/n1-n-87k-490",lon: "121.015000084042",lat: "24.8521077730511",locationMiles: "87.490" },
+
+					{ title: "88K+590 南\n湖口服務區-竹北", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18850", link: "https://www.twipcam.com/cam/n1-s-88k-590",lon: "121.021456868119",lat: "24.8446587382532",locationMiles: "88.590" },
+					{ title: "89K+300 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=18930", link: "https://www.twipcam.com/cam/n1-n-89k-300",lon: "121.022492635631",lat: "24.8381453007532",locationMiles: "89.300" },
+
+					{ title: "91K+000 南\n竹北-新竹", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19101", link: "https://www.twipcam.com/cam/n1-s-91k-000",lon: "121.017210341628",lat: "24.8238499411533",locationMiles: "91.000" },
+					{ title: "90K+470 北\n竹北-湖口服務區", src: "https://cctvn.freeway.gov.tw/abs2mjpg/bmjpg?camera=19040", link: "https://www.twipcam.com/cam/n1-n-90k-470",lon: "121.020098043065",lat: "24.8282095863834",locationMiles: "90.470" },
 				],
 			},
 		};
 
+
 	const Def_Road = "國道1號";
-    const Def_Section = "中壢 - 楊梅";
+	const Def_Section = "中壢 - 楊梅";
 
-    let cctvData = [];
-    let activeTimers = []; 
-    const cameraControllers = [];
-    const container = document.getElementById('cctvGridContainer');
-    const roadSelect = document.getElementById('roadSelect');
-    const segmentSelect = document.getElementById('segmentSelect');
-    const selectorContainer = document.getElementById('selectorContainer');
+	let cctvData = [];
+	let activeTimers = []; 
+	const cameraControllers = [];
+	const container = document.getElementById('cctvGridContainer');
+	const roadSelect = document.getElementById('roadSelect');
+	const segmentSelect = document.getElementById('segmentSelect');
+	const selectorContainer = document.getElementById('selectorContainer');
 
-    function formatTitle(text) {
-        return text ? text.replace(/\n/g, '<br>') : '';
-    }
+	function formatTitle(text) {
+		return text ? text.replace(/\n/g, '<br>') : '';
+	}
 
-    const observerOptions = {
-        root: null,
-        threshold: 0.1
-    };
+	const observerOptions = {
+		root: null,
+		threshold: 0.1
+	};
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            const box = entry.target;
-            box.setAttribute('data-in-view', entry.isIntersecting);
-        });
-    }, observerOptions);
+	const observer = new IntersectionObserver((entries) => {
+		entries.forEach(entry => {
+			const box = entry.target;
+			box.setAttribute('data-in-view', entry.isIntersecting);
+		});
+	}, observerOptions);
 
-    function initSelectors() {
-        roadSelect.innerHTML = '';
-        const roadKeys = Object.keys(All_Data);
+	function initSelectors() {
+		roadSelect.innerHTML = '';
+		const roadKeys = Object.keys(All_Data);
 
-        const isSingleRoad = roadKeys.length === 1;
-        const isSingleSegment = isSingleRoad && Object.keys(All_Data[roadKeys[0]]).length === 1;
+		const isSingleRoad = roadKeys.length === 1;
+		const isSingleSegment = isSingleRoad && Object.keys(All_Data[roadKeys[0]]).length === 1;
 
-        if (isSingleRoad && isSingleSegment) {
-            selectorContainer.style.display = 'none';
+		if (isSingleRoad && isSingleSegment) {
+			selectorContainer.style.display = 'none';
 
-            const singleRoad = roadKeys[0];
-            const singleSegment = Object.keys(All_Data[singleRoad])[0];
+			const singleRoad = roadKeys[0];
+			const singleSegment = Object.keys(All_Data[singleRoad])[0];
 
-            const roadOpt = document.createElement('option');
-            roadOpt.value = singleRoad;
-            roadSelect.appendChild(roadOpt);
-            roadSelect.value = singleRoad;
+			const roadOpt = document.createElement('option');
+			roadOpt.value = singleRoad;
+			roadSelect.appendChild(roadOpt);
+			roadSelect.value = singleRoad;
 
-            const segOpt = document.createElement('option');
-            segOpt.value = singleSegment;
-            segmentSelect.appendChild(segOpt);
-            segmentSelect.value = singleSegment;
+			const segOpt = document.createElement('option');
+			segOpt.value = singleSegment;
+			segmentSelect.appendChild(segOpt);
+			segmentSelect.value = singleSegment;
 
-            onSegmentChange();
-            return;
-        }
+			onSegmentChange();
+			return;
+		}
 
-        selectorContainer.style.display = 'flex';
+		selectorContainer.style.display = 'flex';
 
-        if (roadKeys.length > 1) {
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = '-- 請選擇道路 --';
-            roadSelect.appendChild(defaultOpt);
-        }
+		if (roadKeys.length > 1) {
+			const defaultOpt = document.createElement('option');
+			defaultOpt.value = '';
+			defaultOpt.textContent = '-- 請選擇道路 --';
+			roadSelect.appendChild(defaultOpt);
+		}
 
-        roadKeys.forEach(road => {
-            const opt = document.createElement('option');
-            opt.value = road;
-            opt.textContent = road;
-            roadSelect.appendChild(opt);
-        });
+		roadKeys.forEach(road => {
+			const opt = document.createElement('option');
+			opt.value = road;
+			opt.textContent = road;
+			roadSelect.appendChild(opt);
+		});
 
-        roadSelect.addEventListener('change', onRoadChange);
-        segmentSelect.addEventListener('change', onSegmentChange);
+		roadSelect.addEventListener('change', onRoadChange);
+		segmentSelect.addEventListener('change', onSegmentChange);
 
-        if (roadKeys.length === 1) {
-            roadSelect.value = roadKeys[0];
-        }
+		if (roadKeys.length === 1) {
+			roadSelect.value = roadKeys[0];
+		}
 
-        onRoadChange();
+		onRoadChange();
 		
 		// 檢查 Def_Road 與 Def_Section 是否存在於 All_Data 中，若存在則設定並載入
-        if (Def_Road && Def_Section && All_Data[Def_Road] && All_Data[Def_Road][Def_Section]) {
-            roadSelect.value = Def_Road;
-            onRoadChange(); // 重新觸發 segmentSelect 的選項建構
-            segmentSelect.value = Def_Section;
-            onSegmentChange(); // 載入預設的 cctvData
-        }
-    }
+		if (Def_Road && Def_Section && All_Data[Def_Road] && All_Data[Def_Road][Def_Section]) {
+			roadSelect.value = Def_Road;
+			onRoadChange(); // 重新觸發 segmentSelect 的選項建構
+			segmentSelect.value = Def_Section;
+			onSegmentChange(); // 載入預設的 cctvData
+		}
+	}
 
-    function onRoadChange() {
-        const selectedRoad = roadSelect.value;
-        segmentSelect.innerHTML = '';
+	function onRoadChange() {
+		const selectedRoad = roadSelect.value;
+		segmentSelect.innerHTML = '';
 
-        if (!selectedRoad || !All_Data[selectedRoad]) {
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = '-- 請先選擇道路 --';
-            segmentSelect.appendChild(defaultOpt);
-            onSegmentChange();
-            return;
-        }
+		if (!selectedRoad || !All_Data[selectedRoad]) {
+			const defaultOpt = document.createElement('option');
+			defaultOpt.value = '';
+			defaultOpt.textContent = '-- 請先選擇道路 --';
+			segmentSelect.appendChild(defaultOpt);
+			onSegmentChange();
+			return;
+		}
 
-        const segmentKeys = Object.keys(All_Data[selectedRoad]);
+		const segmentKeys = Object.keys(All_Data[selectedRoad]);
 
-        if (segmentKeys.length > 1) {
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = '-- 請選擇區劃 --';
-            segmentSelect.appendChild(defaultOpt);
-        }
+		if (segmentKeys.length > 1) {
+			const defaultOpt = document.createElement('option');
+			defaultOpt.value = '';
+			defaultOpt.textContent = '-- 請選擇區劃 --';
+			segmentSelect.appendChild(defaultOpt);
+		}
 
-        segmentKeys.forEach(segment => {
-            const opt = document.createElement('option');
-            opt.value = segment;
+		segmentKeys.forEach(segment => {
+			const opt = document.createElement('option');
+			opt.value = segment;
 			// 計算該區段中 title 為非空值的數量
 			const validTitleCount = All_Data[selectedRoad][segment].filter(
 				item => item.title && item.title.trim() !== ''
@@ -440,559 +517,547 @@
 
 			// 於選單文字加上數量標籤
 			opt.textContent = `${segment} (${validTitleCount})`;
-            segmentSelect.appendChild(opt);
-        });
+			segmentSelect.appendChild(opt);
+		});
 
-        if (segmentKeys.length === 1) {
-            segmentSelect.value = segmentKeys[0];
-        }
+		if (segmentKeys.length === 1) {
+			segmentSelect.value = segmentKeys[0];
+		}
 
-        onSegmentChange();
-    }
+		onSegmentChange();
+	}
 
-    function clearCCTVData() {
-        activeTimers.forEach(timer => clearInterval(timer));
-        activeTimers = [];
-        cameraControllers.length = 0;
-        container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
-    }
+	function clearCCTVData() {
+		activeTimers.forEach(timer => {
+			clearInterval(timer);
+			clearTimeout(timer);
+		});
+		activeTimers = [];
+		cameraControllers.length = 0;
+		if (observer) observer.disconnect(); // 避免舊節點洩漏
+		container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
+	}
 
-    function onSegmentChange() {
-        const selectedRoad = roadSelect.value;
-        const selectedSegment = segmentSelect.value;
+	function onSegmentChange() {
+		const selectedRoad = roadSelect.value;
+		const selectedSegment = segmentSelect.value;
 
-        if (!selectedRoad || !selectedSegment || !All_Data[selectedRoad] || !All_Data[selectedRoad][selectedSegment]) {
-            document.getElementById('pageTitle').innerText = `🛣️ 國道即時影像`;
-            cctvData = [];
-            clearCCTVData();
-            return;
-        }
+		if (!selectedRoad || !selectedSegment || !All_Data[selectedRoad] || !All_Data[selectedRoad][selectedSegment]) {
+			document.getElementById('pageTitle').innerText = `🛣️ 國道即時影像`;
+			cctvData = [];
+			clearCCTVData();
+			return;
+		}
 
-        document.getElementById('pageTitle').innerText = `🛣️ ${selectedRoad} (${selectedSegment}) 即時影像`;
-        cctvData = All_Data[selectedRoad][selectedSegment];
-        loadCCTVData();
-    }
+		document.getElementById('pageTitle').innerText = `🛣️ ${selectedRoad} (${selectedSegment}) 即時影像`;
+		cctvData = All_Data[selectedRoad][selectedSegment];
+		loadCCTVData();
+	}
 
-    function loadCCTVData() {
-        activeTimers.forEach(timer => clearInterval(timer));
-        activeTimers = [];
-        cameraControllers.length = 0;
-        container.innerHTML = '';
+	function loadCCTVData() {
+		activeTimers.forEach(timer => clearInterval(timer));
+		activeTimers = [];
+		cameraControllers.length = 0;
+		container.innerHTML = '';
 
-        cctvData.forEach((item, index) => {
-            const box = document.createElement('div');
-            box.className = 'cctv-box';
-            box.setAttribute('data-index', index);
-            
-            if (!item.title && !item.src) {
-                box.style.visibility = 'hidden';
-                container.appendChild(box);
-                return;
-            }
-            
-            box.setAttribute('data-in-view', 'false');
+		cctvData.forEach((item, index) => {
+			const box = document.createElement('div');
+			box.className = 'cctv-box';
+			box.setAttribute('data-index', index);
+			
+			if (!item.title && !item.src) {
+				box.style.visibility = 'hidden';
+				container.appendChild(box);
+				return;
+			}
+			
+			box.setAttribute('data-in-view', 'false');
 
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'cctv-title';
-            titleDiv.innerHTML = formatTitle(item.title);
+			const titleDiv = document.createElement('div');
+			titleDiv.className = 'cctv-title';
+			titleDiv.innerHTML = formatTitle(item.title);
 
-            titleDiv.addEventListener('click', function() {
-                if(item.link) window.open(item.link, '_blank');
-            });
-            
-            const wrapper = document.createElement('div');
-            wrapper.className = 'video-wrapper';
+			titleDiv.addEventListener('click', function() {
+				if(item.link) window.open(item.link, '_blank');
+			});
+			
+			const wrapper = document.createElement('div');
+			wrapper.className = 'video-wrapper';
 
-            const img = document.createElement('img');
-            img.className = 'cctv-img';
-            img.src = item.src;
+			const img = document.createElement('img');
+			img.className = 'cctv-img';
+			img.src = item.src;
 
-            const canvas = document.createElement('canvas');
-            canvas.className = 'cctv-canvas';
-            const ctx = canvas.getContext('2d');
+			const canvas = document.createElement('canvas');
+			canvas.className = 'cctv-canvas';
+			const ctx = canvas.getContext('2d');
 
-            wrapper.appendChild(img);
-            wrapper.appendChild(canvas);
-            box.appendChild(titleDiv);
-            box.appendChild(wrapper);
-            container.appendChild(box);
+			wrapper.appendChild(img);
+			wrapper.appendChild(canvas);
+			box.appendChild(titleDiv);
+			box.appendChild(wrapper);
+			container.appendChild(box);
 
-            observer.observe(box);
+			observer.observe(box);
 
-            let lastUpdate = Date.now();
-            let isFrozen = false;
-            let retryCount = 0;
+			let lastUpdate = Date.now();
+			let isFrozen = false;
+			let retryCount = 0;
+			let consecutiveFailures = 0;
 
-            img.onload = function() {
-                if (isFrozen) return;
-                lastUpdate = Date.now();
-                
-                if (img.naturalWidth && img.naturalHeight) {
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                }
-                try {
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                } catch (e) {}
-            };
+			img.onload = function() {
+				lastUpdate = Date.now();
+				consecutiveFailures = 0;
+				
+				if (isFrozen) {
+					isFrozen = false;
+					retryCount = 0;
+					box.classList.remove('box-frozen');
+					titleDiv.innerHTML = formatTitle(item.title);
+					img.style.display = 'block';
+				}
 
-            img.onerror = function() {
-                freezeThisCamera();
-            };
+				if (img.naturalWidth && img.naturalHeight) {
+					canvas.width = img.naturalWidth;
+					canvas.height = img.naturalHeight;
+				}
+				try {
+					ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+				} catch (e) {}
+			};
 
-            function freezeThisCamera() {
-                if (isFrozen) return;
-                isFrozen = true;
-                box.classList.add('box-frozen');
-                titleDiv.innerHTML = "<span style='color: #d32f2f; font-size: 11px;'>[斷訊]</span> " + formatTitle(item.title);
-                img.style.display = 'none';
-            }
+			img.onerror = function() {
+				consecutiveFailures++;
+				if (consecutiveFailures >= 3 || isFrozen) {
+					retryCount++;
+					freezeThisCamera();
+				}
+			};
 
-            let ReconnectRequest = false;
-            
-            function forceResetAndRefresh() {
-                isFrozen = false;
-                retryCount = 0;
-                ReconnectRequest = false;
-                box.classList.remove('box-frozen');
-                titleDiv.innerHTML = formatTitle(item.title);
-                img.style.display = 'block';
-                lastUpdate = Date.now();
-                img.src = item.src + '&forceRefresh=' + lastUpdate;
-            }
+			function freezeThisCamera() {
+				isFrozen = true;
+				box.classList.add('box-frozen');
+				const label = retryCount > 0 ? `[斷訊重試 ${retryCount}]` : '[斷訊]';
+				titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>${label}</span> ` + formatTitle(item.title);
+				img.style.display = 'none';
+			}
 
-            function Refresh() {
-                if (ReconnectRequest) return;
-                ReconnectRequest = true;
-                const testImg = new Image();
+			function forceResetAndRefresh() {
+				isFrozen = false;
+				retryCount = 0;
+				consecutiveFailures = 0;
+				box.classList.remove('box-frozen');
+				titleDiv.innerHTML = formatTitle(item.title);
+				img.style.display = 'block';
+				lastUpdate = Date.now();
+				img.src = item.src + '&forceRefresh=' + lastUpdate;
+			}
 
-                const timer = setTimeout(() => {
-                    testImg.src = "";
-                    ReconnectRequest = false;
-                }, 5000);
+			function Refresh() {
+				img.src = item.src + '&refresh=' + Date.now();
+			}
+			
+			cameraControllers.push({
+				forceReset: forceResetAndRefresh,
+				refreshIfFrozen: function() {
+					const isInView = box.getAttribute('data-in-view') === 'true';
+					if (isFrozen && isInView) {
+						Refresh();
+					}
+				}
+			});
+			
+			const freezeTimer = setInterval(function() {
+				if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
+					retryCount = 0;
+					freezeThisCamera();
+				}
+			}, 6000);
 
-                testImg.onload = function() {
-                    clearTimeout(timer);
-                    if (testImg.naturalWidth > 0 && testImg.naturalHeight > 0) {
-                        isFrozen = false;
-                        retryCount = 0;
-                        box.classList.remove('box-frozen');
-                        titleDiv.innerHTML = formatTitle(item.title);
-                        img.style.display = 'block';
-                        img.src = item.src + '&refresh=' + new Date().getTime();
-                        lastUpdate = Date.now();
-                    }
-                    ReconnectRequest = false;
-                };
-                testImg.onerror = function() {
-                    clearTimeout(timer);
-                    retryCount++;
-                    titleDiv.innerHTML = `<span style='color: #d32f2f; font-size: 11px;'>[斷訊重試 ${retryCount}]</span> ` + formatTitle(item.title);
-                    ReconnectRequest = false;
-                };
-                testImg.src = item.src + '&test=' + new Date().getTime();
-            }
-            
-            cameraControllers.push({
-                forceReset: forceResetAndRefresh,
-                refreshIfFrozen: function() {
-                    const isInView = box.getAttribute('data-in-view') === 'true';
-                    if (isFrozen && isInView) {
-                        Refresh();
-                    }
-                }
-            });
-            
-            const freezeTimer = setInterval(function() {
-                if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
-                    retryCount = 0;
-                    freezeThisCamera();
-                }
-            }, 6000);
+			const randomOffset = Math.floor(Math.random() * 2000);
+			const delayTimeout = setTimeout(() => {
+				const refreshTimer = setInterval(function() {
+					const isInView = box.getAttribute('data-in-view') === 'true';
+					if (isInView) {
+						Refresh();
+					}
+				}, 8000);
 
-            const refreshTimer = setInterval(function() {
-                const isInView = box.getAttribute('data-in-view') === 'true';
-                if (isInView) {
-                    Refresh();
-                }
-            }, 8000);
+				activeTimers.push(freezeTimer, refreshTimer);
+			}, randomOffset);
+			activeTimers.push(delayTimeout);
+		});
+	}
 
-            activeTimers.push(freezeTimer, refreshTimer);
-        });
-    }
+	initSelectors();
 
-    initSelectors();
+	document.getElementById('globalRefreshBtn').addEventListener('click', function() {
+		this.style.transform = 'rotate(360deg)';
+		setTimeout(() => { this.style.transform = 'none'; }, 500);
 
-    document.getElementById('globalRefreshBtn').addEventListener('click', function() {
-        this.style.transform = 'rotate(360deg)';
-        setTimeout(() => { this.style.transform = 'none'; }, 500);
+		cameraControllers.forEach(ctrl => {
+			ctrl.refreshIfFrozen();
+		});
 
-        cameraControllers.forEach(ctrl => {
-            ctrl.refreshIfFrozen();
-        });
+		cameraControllers.forEach(ctrl => {
+			ctrl.forceReset();
+		});
+	});
 
-        cameraControllers.forEach(ctrl => {
-            ctrl.forceReset();
-        });
-    });
+	let resetGpsTimer = null;
+	(function() {
+		const gpsBtn = document.getElementById('gpsToggleBtn');
+		let isGpsActive = false;
+		let gpsTimer = null;
+		let lastCoords = null;
 
-let resetGpsTimer = null;
-    (function() {
-        const gpsBtn = document.getElementById('gpsToggleBtn');
-        let isGpsActive = false;
-        let gpsTimer = null;
-        let lastCoords = null;
+		function getDistanceKm(lat1, lon1, lat2, lon2) {
+			const R = 6371;
+			const dLat = (lat2 - lat1) * Math.PI / 180;
+			const dLon = (lon2 - lon1) * Math.PI / 180;
+			const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+					  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+					  Math.sin(dLon/2) * Math.sin(dLon/2);
+			const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+			return R * c;
+		}
 
-        function getDistanceKm(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
+		function getBearing(lat1, lon1, lat2, lon2) {
+			const phi1 = lat1 * Math.PI / 180;
+			const phi2 = lat2 * Math.PI / 180;
+			const deltaLambda = (lon2 - lon1) * Math.PI / 180;
 
-        function getBearing(lat1, lon1, lat2, lon2) {
-            const phi1 = lat1 * Math.PI / 180;
-            const phi2 = lat2 * Math.PI / 180;
-            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+			const y = Math.sin(deltaLambda) * Math.cos(phi2);
+			const x = Math.cos(phi1) * Math.sin(phi2) -
+					  Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+			let brng = Math.atan2(y, x) * 180 / Math.PI;
+			return (brng + 360) % 360;
+		}
 
-            const y = Math.sin(deltaLambda) * Math.cos(phi2);
-            const x = Math.cos(phi1) * Math.sin(phi2) -
-                      Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
-            let brng = Math.atan2(y, x) * 180 / Math.PI;
-            return (brng + 360) % 360;
-        }
+		function updateArrowIcon(lat1, lon1, lat2, lon2) {
+			const dist = getDistanceKm(lat1, lon1, lat2, lon2);
+			if (dist < 0.005) {
+				gpsBtn.innerText = '🧭';
+				return;
+			}
 
-        function updateArrowIcon(lat1, lon1, lat2, lon2) {
-            const dist = getDistanceKm(lat1, lon1, lat2, lon2);
-            if (dist < 0.005) {
-                gpsBtn.innerText = '🧭';
-                return;
-            }
+			const bearing = getBearing(lat1, lon1, lat2, lon2);
+			if (bearing >= 45 && bearing < 135) {
+				gpsBtn.innerText = '➡️';
+			} else if (bearing >= 135 && bearing < 225) {
+				gpsBtn.innerText = '⬇️';
+			} else if (bearing >= 225 && bearing < 315) {
+				gpsBtn.innerText = '⬅️';
+			} else {
+				gpsBtn.innerText = '⬆️';
+			}
+		}
 
-            const bearing = getBearing(lat1, lon1, lat2, lon2);
-            if (bearing >= 45 && bearing < 135) {
-                gpsBtn.innerText = '➡️';
-            } else if (bearing >= 135 && bearing < 225) {
-                gpsBtn.innerText = '⬇️';
-            } else if (bearing >= 225 && bearing < 315) {
-                gpsBtn.innerText = '⬅️';
-            } else {
-                gpsBtn.innerText = '⬆️';
-            }
-        }
+		function trackAndScroll() {
+			if (!navigator.geolocation) {
+				alert('您的瀏覽器不支援 GPS 地理定位功能');
+				stopGps();
+				return;
+			}
 
-        function trackAndScroll() {
-            if (!navigator.geolocation) {
-                alert('您的瀏覽器不支援 GPS 地理定位功能');
-                stopGps();
-                return;
-            }
+			navigator.geolocation.getCurrentPosition(
+				function(position) {
+					const currentLat = position.coords.latitude;
+					const currentLon = position.coords.longitude;
 
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const currentLat = position.coords.latitude;
-                    const currentLon = position.coords.longitude;
+					if (lastCoords) {
+						updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
+					}
+					lastCoords = { lat: currentLat, lon: currentLon };
 
-                    if (lastCoords) {
-                        updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
-                    }
-                    lastCoords = { lat: currentLat, lon: currentLon };
+					let minDistance = Infinity;
+					let closestIndex = -1;
 
-                    // 1. 找出當前區段內距離最近的影像卡片
-                    let minDistance = Infinity;
-                    let closestIndex = -1;
+					cctvData.forEach((item, idx) => {
+						if (!item.lat || !item.lon) return;
+						const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+						if (dist < minDistance) {
+							minDistance = dist;
+							closestIndex = idx;
+						}
+					});
 
-                    cctvData.forEach((item, idx) => {
-                        if (!item.lat || !item.lon) return;
-                        const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            closestIndex = idx;
-                        }
-                    });
+					if (minDistance > 2) {
+						let globalMinDist = Infinity;
+						let bestRoad = null;
+						let bestSegment = null;
 
-                    // ----------------【新增：距離超過 2KM 全區搜尋切換】----------------
-                    if (minDistance > 2) {
-                        let globalMinDist = Infinity;
-                        let bestRoad = null;
-                        let bestSegment = null;
+						for (const roadKey in All_Data) {
+							for (const segKey in All_Data[roadKey]) {
+								const itemList = All_Data[roadKey][segKey];
+								itemList.forEach(item => {
+									if (item.lat && item.lon) {
+										const d = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+										if (d < globalMinDist) {
+											globalMinDist = d;
+											bestRoad = roadKey;
+											bestSegment = segKey;
+										}
+									}
+								});
+							}
+						}
 
-                        // 搜尋 All_Data 內所有的 Road 與 Section
-                        for (const roadKey in All_Data) {
-                            for (const segKey in All_Data[roadKey]) {
-                                const itemList = All_Data[roadKey][segKey];
-                                itemList.forEach(item => {
-                                    if (item.lat && item.lon) {
-                                        const d = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-                                        if (d < globalMinDist) {
-                                            globalMinDist = d;
-                                            bestRoad = roadKey;
-                                            bestSegment = segKey;
-                                        }
-                                    }
-                                });
-                            }
-                        }
+						if (bestRoad && bestSegment && (bestRoad !== roadSelect.value || bestSegment !== segmentSelect.value)) {
+							roadSelect.value = bestRoad;
+							onRoadChange();
+							segmentSelect.value = bestSegment;
+							onSegmentChange();
+							return;
+						}
+					}
 
-                        // 若找到更近的區段且非當前區段，執行切換
-                        if (bestRoad && bestSegment && (bestRoad !== roadSelect.value || bestSegment !== segmentSelect.value)) {
-                            roadSelect.value = bestRoad;
-                            onRoadChange(); // 更新區劃選單
-                            segmentSelect.value = bestSegment;
-                            onSegmentChange(); // 載入該區段資料並更新畫面
-                            return; // 切換後結束本次流程，待下次 GPS 觸發再捲動
-                        }
-                    }
-                    // ------------------------------------------------------------------
+					if (closestIndex === -1) return;
 
-                    if (closestIndex === -1) return;
+					const road = roadSelect.value;
+					const currentSeg = segmentSelect.value;
+					const segments = All_Data[road] ? Object.keys(All_Data[road]) : [];
+					const segIndex = segments.indexOf(currentSeg);
 
-                    const road = roadSelect.value;
-                    const currentSeg = segmentSelect.value;
-                    const segments = All_Data[road] ? Object.keys(All_Data[road]) : [];
-                    const segIndex = segments.indexOf(currentSeg);
+					if (closestIndex <= 1 && segIndex > 0) {
+						const prevSegName = segments[segIndex - 1];
+						const prevSegData = All_Data[road][prevSegName] || [];
+						let prevMinDist = Infinity;
 
-                    // 2. 當前圖像為該區段前 2 個時，檢查上一區段從最後面開始的有效值
-                    if (closestIndex <= 1 && segIndex > 0) {
-                        const prevSegName = segments[segIndex - 1];
-                        const prevSegData = All_Data[road][prevSegName] || [];
-                        let prevMinDist = Infinity;
+						let foundCount = 0;
+						for (let i = prevSegData.length - 1; i >= 0; i--) {
+							const item = prevSegData[i];
+							if (item.lat && item.lon) {
+								const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+								if (dist < prevMinDist) {
+									prevMinDist = dist;
+								}
+								foundCount++;
+								if (foundCount >= 2) break;
+							}
+						}
 
-                        let foundCount = 0;
-                        for (let i = prevSegData.length - 1; i >= 0; i--) {
-                            const item = prevSegData[i];
-                            if (item.lat && item.lon) {
-                                const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-                                if (dist < prevMinDist) {
-                                    prevMinDist = dist;
-                                }
-                                foundCount++;
-                                if (foundCount >= 2) break;
-                            }
-                        }
+						if (prevMinDist < minDistance) {
+							const prevBtn = document.getElementById('prevSegmentBtn');
+							if (prevBtn) prevBtn.click();
+							return;
+						}
+					}
 
-                        if (prevMinDist < minDistance) {
-                            const prevBtn = document.getElementById('prevSegmentBtn');
-                            if (prevBtn) prevBtn.click();
-                            return;
-                        }
-                    }
+					if (closestIndex >= cctvData.length - 2 && segIndex !== -1 && segIndex < segments.length - 1) {
+						const nextSegName = segments[segIndex + 1];
+						const nextSegData = All_Data[road][nextSegName] || [];
+						let nextMinDist = Infinity;
 
-                    // 3. 當前圖像為該區段最後 2 個時，檢查下一區段從頭開始的有效值
-                    if (closestIndex >= cctvData.length - 2 && segIndex !== -1 && segIndex < segments.length - 1) {
-                        const nextSegName = segments[segIndex + 1];
-                        const nextSegData = All_Data[road][nextSegName] || [];
-                        let nextMinDist = Infinity;
+						let foundCount = 0;
+						for (let i = 0; i < nextSegData.length; i++) {
+							const item = nextSegData[i];
+							if (item.lat && item.lon) {
+								const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+								if (dist < nextMinDist) {
+									nextMinDist = dist;
+								}
+								foundCount++;
+								if (foundCount >= 2) break;
+							}
+						}
 
-                        let foundCount = 0;
-                        for (let i = 0; i < nextSegData.length; i++) {
-                            const item = nextSegData[i];
-                            if (item.lat && item.lon) {
-                                const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-                                if (dist < nextMinDist) {
-                                    nextMinDist = dist;
-                                }
-                                foundCount++;
-                                if (foundCount >= 2) break;
-                            }
-                        }
+						if (nextMinDist < minDistance) {
+							const nextBtn = document.getElementById('nextSegmentBtn');
+							if (nextBtn) nextBtn.click();
+							return;
+						}
+					}
 
-                        if (nextMinDist < minDistance) {
-                            const nextBtn = document.getElementById('nextSegmentBtn');
-                            if (nextBtn) nextBtn.click();
-                            return;
-                        }
-                    }
-
-                    // 4. 若當前區段即為最近，平滑捲動至目標卡片
-                    const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
-                    if (targetBox) {
-                        targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                },
-                function(error) {
-                    console.warn('GPS 取得失敗:', error.message);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 2500,
-                    maximumAge: 0
-                }
-            );
-        }
+					const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
+					if (targetBox) {
+						targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					}
+				},
+				function(error) {
+					console.warn('GPS 取得失敗:', error.message);
+				},
+				{
+					enableHighAccuracy: true,
+					timeout: 2500,
+					maximumAge: 0
+				}
+			);
+		}
 		
-        function startGps() {
-            isGpsActive = true;
-            gpsBtn.classList.add('active');
-            gpsBtn.innerText = '🧭';
-            trackAndScroll();
-            gpsTimer = setInterval(trackAndScroll, 10000);
-        }
+		function startGps() {
+			isGpsActive = true;
+			gpsBtn.classList.add('active');
+			gpsBtn.innerText = '🧭';
+			trackAndScroll();
+			gpsTimer = setInterval(trackAndScroll, 10000);
+		}
 
-        function stopGps() {
-            isGpsActive = false;
-            gpsBtn.classList.remove('active');
-            gpsBtn.innerText = '🧭';
-            if (gpsTimer) {
-                clearInterval(gpsTimer);
-                gpsTimer = null;
-            }
-            lastCoords = null;
-        }
+		function stopGps() {
+			isGpsActive = false;
+			gpsBtn.classList.remove('active');
+			gpsBtn.innerText = '🧭';
+			if (gpsTimer) {
+				clearInterval(gpsTimer);
+				gpsTimer = null;
+			}
+			lastCoords = null;
+		}
 
-        resetGpsTimer = function() {
-            if (!isGpsActive) return;
-            if (gpsTimer) {
-                clearInterval(gpsTimer);
-            }
-            gpsTimer = setInterval(trackAndScroll, 10000);
-        };
+		resetGpsTimer = function() {
+			if (!isGpsActive) return;
+			if (gpsTimer) {
+				clearInterval(gpsTimer);
+			}
+			gpsTimer = setInterval(trackAndScroll, 5000);
+		};
 
-        gpsBtn.addEventListener('click', function() {
-            if (isGpsActive) {
-                stopGps();
-            } else {
-                startGps();
-            }
-        });
-    })();
+		gpsBtn.addEventListener('click', function() {
+			if (isGpsActive) {
+				stopGps();
+			} else {
+				startGps();
+			}
+		});
+	})();
 
-    (function() {
-        let hideTimeout = null;
-        let stopScrollTimeout = null;
-        const badge = document.getElementById('scrollPercentBadge');
+	(function() {
+		let hideTimeout = null;
+		let stopScrollTimeout = null;
+		const badge = document.getElementById('scrollPercentBadge');
 
-        function getTopVisibleTitle() {
-            const boxes = document.querySelectorAll('.cctv-box');
-            let topTitle = '';
-            let minTopDifference = Infinity;
+		function getTopVisibleTitle() {
+			const boxes = document.querySelectorAll('.cctv-box');
+			let topTitle = '';
+			let minTopDifference = Infinity;
 
-            boxes.forEach(box => {
-                if (box.style.visibility === 'hidden') return;
+			boxes.forEach(box => {
+				if (box.style.visibility === 'hidden') return;
 
-                const rect = box.getBoundingClientRect();
-                if (rect.bottom > 0 && rect.top < window.innerHeight) {
-                    const diff = Math.abs(rect.top);
-                    if (diff < minTopDifference) {
-                        minTopDifference = diff;
-                        const titleEl = box.querySelector('.cctv-title');
-                        if (titleEl) {
-                            topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').trim();
-                        }
-                    }
-                }
-            });
+				const rect = box.getBoundingClientRect();
+				if (rect.bottom > 0 && rect.top < window.innerHeight) {
+					const diff = Math.abs(rect.top);
+					if (diff < minTopDifference) {
+						minTopDifference = diff;
+						const titleEl = box.querySelector('.cctv-title');
+						if (titleEl) {
+							topTitle = titleEl.innerText.replace(/\[斷訊.*?\]/g, '').trim();
+						}
+					}
+				}
+			});
 
-            return topTitle;
-        }
+			return topTitle;
+		}
 
-        function updateBadge() {
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const scrollHeight = document.documentElement.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight;
+		function updateBadge() {
+			const scrollTop = window.scrollY || document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight;
+			const clientHeight = document.documentElement.clientHeight;
 
-            const totalScrollable = scrollHeight - clientHeight;
-            let scrollPercent = 0;
+			const totalScrollable = scrollHeight - clientHeight;
+			let scrollPercent = 0;
 
-            if (totalScrollable > 0) {
-                scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
-            }
+			if (totalScrollable > 0) {
+				scrollPercent = Math.round((scrollTop / totalScrollable) * 100);
+			}
 
-            const currentTitle = getTopVisibleTitle();
-            const displayText = currentTitle 
-                ? `${currentTitle} | ${scrollPercent}%`
-                : `位置：${scrollPercent}%`;
+			const currentTitle = getTopVisibleTitle();
+			const displayText = currentTitle 
+				? `${currentTitle} | ${scrollPercent}%`
+				: `位置：${scrollPercent}%`;
 
-            badge.innerText = displayText;
-            badge.classList.add('show');
-        }
+			badge.innerText = displayText;
+			badge.classList.add('show');
+		}
 
-        window.addEventListener('scroll', function() {
-            updateBadge();
+		let isTicking = false;
+		window.addEventListener('scroll', function() {
+			if (!isTicking) {
+				window.requestAnimationFrame(() => {
+					updateBadge();
+					isTicking = false;
+				});
+				isTicking = true;
+			}
 
-            if (typeof resetGpsTimer === 'function') {
-                resetGpsTimer();
-            }
+			if (typeof resetGpsTimer === 'function') {
+				resetGpsTimer();
+			}
 
-            if (hideTimeout !== null) clearTimeout(hideTimeout);
-            if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
+			if (hideTimeout !== null) clearTimeout(hideTimeout);
+			if (stopScrollTimeout !== null) clearTimeout(stopScrollTimeout);
 
-            stopScrollTimeout = setTimeout(function() {
-                cameraControllers.forEach(ctrl => {
-                    ctrl.refreshIfFrozen();
-                });
-            }, 200);
+			stopScrollTimeout = setTimeout(function() {
+				cameraControllers.forEach(ctrl => {
+					ctrl.refreshIfFrozen();
+				});
+			}, 200);
 
-            hideTimeout = setTimeout(function() {
-                badge.classList.remove('show');
-            }, 2500);
-        });
-    })();
+			hideTimeout = setTimeout(function() {
+				badge.classList.remove('show');
+			}, 2500);
+		});
+	})();
 
-    (function() {
-        const zone = document.getElementById('rightScrollZone');
-        let isInteracting = false;
+	(function() {
+		const zone = document.getElementById('rightScrollZone');
+		let isInteracting = false;
 
-        function scrollToYRatio(clientY) {
-            const viewportHeight = window.innerHeight;
-            const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
-            const ratio = clampedY / viewportHeight;
+		function scrollToYRatio(clientY) {
+			const viewportHeight = window.innerHeight;
+			const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
+			const ratio = clampedY / viewportHeight;
 
-            const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
-            if (totalScrollable > 0) {
-                const targetScrollTop = totalScrollable * ratio;
-                window.scrollTo({
-                    top: targetScrollTop,
-                    behavior: 'auto'
-                });
-            }
-        }
+			const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
+			if (totalScrollable > 0) {
+				const targetScrollTop = totalScrollable * ratio;
+				window.scrollTo({
+					top: targetScrollTop,
+					behavior: 'auto'
+				});
+			}
+		}
 
-        zone.addEventListener('touchstart', function(e) {
-            isInteracting = true;
-            scrollToYRatio(e.touches[0].clientY);
-        }, { passive: true });
+		zone.addEventListener('touchstart', function(e) {
+			isInteracting = true;
+			scrollToYRatio(e.touches[0].clientY);
+		}, { passive: true });
 
-        zone.addEventListener('touchmove', function(e) {
-            if (!isInteracting) return;
-            scrollToYRatio(e.touches[0].clientY);
-        }, { passive: true });
+		zone.addEventListener('touchmove', function(e) {
+			if (!isInteracting) return;
+			scrollToYRatio(e.touches[0].clientY);
+		}, { passive: true });
 
-        zone.addEventListener('touchend', function() {
-            isInteracting = false;
-        });
+		zone.addEventListener('touchend', function() {
+			isInteracting = false;
+		});
 
-        zone.addEventListener('mousedown', function(e) {
-            isInteracting = true;
-            scrollToYRatio(e.clientY);
-        });
+		zone.addEventListener('mousedown', function(e) {
+			isInteracting = true;
+			scrollToYRatio(e.clientY);
+		});
 
-        window.addEventListener('mousemove', function(e) {
-            if (!isInteracting) return;
-            scrollToYRatio(e.clientY);
-        });
+		window.addEventListener('mousemove', function(e) {
+			if (!isInteracting) return;
+			scrollToYRatio(e.clientY);
+		});
 
-        window.addEventListener('mouseup', function() {
-            isInteracting = false;
-        });
-    })();
+		window.addEventListener('mouseup', function() {
+			isInteracting = false;
+		});
+	})();
 
 	(function() {
 		const prevBtn = document.getElementById('prevSegmentBtn');
 		const nextBtn = document.getElementById('nextSegmentBtn');
 		let btnHideTimeout = null;
 
-		// 計算有效影像數量 (非空標題)
 		function getValidCount(road, segment) {
 			if (!All_Data[road] || !All_Data[road][segment]) return 0;
 			return All_Data[road][segment].filter(item => item.title && item.title.trim() !== '').length;
 		}
 
-		// 取得相鄰區段的名稱與數量
 		function getAdjacentSegments() {
 			const road = roadSelect.value;
 			const currentSeg = segmentSelect.value;
@@ -1012,7 +1077,6 @@ let resetGpsTimer = null;
 			};
 		}
 
-		// 更新按鈕文字與顯示狀態
 		function updateSegmentButtons() {
 			const { prev, next } = getAdjacentSegments();
 
@@ -1033,32 +1097,27 @@ let resetGpsTimer = null;
 			}
 		}
 
-		// 隱藏按鈕
 		function hideSegmentButtons() {
 			prevBtn.classList.remove('show');
 			nextBtn.classList.remove('show');
 		}
 
-		// 監聽滾動事件以觸發顯示
 		window.addEventListener('scroll', function() {
 			updateSegmentButtons();
 
 			if (btnHideTimeout !== null) clearTimeout(btnHideTimeout);
 
-			// 停止滑動 2.5 秒後自動隱藏
 			btnHideTimeout = setTimeout(function() {
 				hideSegmentButtons();
 			}, 2500);
 		});
 
-		// 點擊「上一區段」事件：載入後畫面移到最下方
 		prevBtn.addEventListener('click', function() {
 			const targetSeg = this.dataset.targetSegment;
 			if (targetSeg) {
 				segmentSelect.value = targetSeg;
 				onSegmentChange();
 
-				// 待畫面卡片渲染後，捲動至最下方
 				setTimeout(() => {
 					window.scrollTo({
 						top: document.documentElement.scrollHeight,
@@ -1068,14 +1127,12 @@ let resetGpsTimer = null;
 			}
 		});
 
-		// 點擊「下一區段」事件：載入後畫面移到最上方
 		nextBtn.addEventListener('click', function() {
 			const targetSeg = this.dataset.targetSegment;
 			if (targetSeg) {
 				segmentSelect.value = targetSeg;
 				onSegmentChange();
 
-				// 載入後捲動至最上方
 				window.scrollTo({
 					top: 0,
 					behavior: 'smooth'
@@ -1083,6 +1140,106 @@ let resetGpsTimer = null;
 			}
 		});
 	})();
+
+	(function() {
+		const fullscreenBtn = document.getElementById('fullscreenToggleBtn');
+		const refreshBtn = document.getElementById('globalRefreshBtn');
+		const gpsBtn = document.getElementById('gpsToggleBtn');
+		let btnHideTimeout = null;
+
+		// 檢查瀏覽器是否支援全螢幕功能及 fullscreenchange 事件
+		function supportsFullscreenChange() {
+			return 'onfullscreenchange' in document || 'onwebkitfullscreenchange' in document || 'msfullscreenchange' in document;
+		}
+
+		// 若不支援全螢幕，直接隱藏全螢幕按鈕
+		if (!supportsFullscreenChange()) {
+			fullscreenBtn.style.display = 'none';
+		}
+
+		// 判斷是否為行動裝置
+		function isMobileDevice() {
+			return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+		}
+
+		// 檢查目前是否處於全螢幕狀態
+		function isFullscreen() {
+			return !!(
+				document.fullscreenElement || 
+				document.webkitFullscreenElement || 
+				document.msFullscreenElement ||
+				(window.navigator.standalone)
+			);
+		}
+
+		// 更新全螢幕按鈕圖示與狀態
+		function updateFullscreenBtnText() {
+			if (isFullscreen()) {
+				fullscreenBtn.innerHTML = '🗗';
+			} else {
+				fullscreenBtn.innerHTML = '⛶';
+			}
+		}
+
+		// 統一的滾動處理函式
+		function handleScroll() {
+			// 1. 處理重新整理與 GPS 按鈕顯示
+			refreshBtn.classList.add('show');
+			gpsBtn.classList.add('show');
+
+			// 2. 處理全螢幕按鈕顯示 (行動裝置且為全螢幕時隱藏)
+			if (supportsFullscreenChange()) {
+				if (isMobileDevice() && isFullscreen()) {
+					fullscreenBtn.classList.remove('show');
+				} else {
+					updateFullscreenBtnText();
+					fullscreenBtn.classList.add('show');
+				}
+			}
+
+			// 3. 統一清除舊的定時器
+			if (btnHideTimeout !== null) {
+				clearTimeout(btnHideTimeout);
+			}
+
+			// 4. 停止滑動 2.5 秒後統一自動隱藏所有按鈕
+			btnHideTimeout = setTimeout(function() {
+				refreshBtn.classList.remove('show');
+				gpsBtn.classList.remove('show');
+				fullscreenBtn.classList.remove('show');
+			}, 2500);
+		}
+
+		// 點擊全螢幕按鈕切換邏輯
+		fullscreenBtn.addEventListener('click', function() {
+			if (!isFullscreen()) {
+				const docEl = document.documentElement;
+				if (docEl.requestFullscreen) {
+					docEl.requestFullscreen();
+				} else if (docEl.webkitRequestFullscreen) {
+					docEl.webkitRequestFullscreen();
+				} else if (docEl.msRequestFullscreen) {
+					docEl.msRequestFullscreen();
+				}
+			} else {
+				if (document.exitFullscreen) {
+					document.exitFullscreen();
+				} else if (document.webkitExitFullscreen) {
+					document.webkitExitFullscreen();
+				} else if (document.msExitFullscreen) {
+					document.msExitFullscreen();
+				}
+			}
+		});
+
+		// 監聽全螢幕狀態切換事件
+		document.addEventListener('fullscreenchange', updateFullscreenBtnText);
+		document.addEventListener('webkitfullscreenchange', updateFullscreenBtnText);
+
+		// 註冊唯一的滾動事件監聽
+		window.addEventListener('scroll', handleScroll);
+	})();
+
 </script>
 </body>
 </html>
