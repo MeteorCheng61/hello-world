@@ -328,8 +328,7 @@
 
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
 <div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
-<div id="gpsMileBadge" class="gps-mile-badge">里程：-- K</div><div id="gpsMileBadge" class="gps-mile-badge">里程：-- K</div>
-
+<div id="gpsMileBadge" class="gps-mile-badge">--</div>
 
 <div class="floating-fullscreen-btn" id="fullscreenToggleBtn">⛶</div>
 
@@ -941,7 +940,7 @@
 			if (!prevPoint && nextPoint) prevPoint = currentPoint;
 			if (!nextPoint && prevPoint) nextPoint = currentPoint;
 			if (!prevPoint && !nextPoint) {
-				mileBadge.innerText = `里程：${parseFloat(currentPoint.item.locationMiles).toFixed(1)} K`;
+				mileBadge.innerText = `${parseFloat(currentPoint.item.locationMiles).toFixed(1)}`;
 				return;
 			}
 
