@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1116</title>
+	<title>南崁 - 竹北 國一即時影像 1436</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -154,11 +154,6 @@
 			user-select: none;
 			/* 新增以下過渡與隱藏設定 */
 			transition: background-color 0.3s ease, transform 0.2s ease, opacity 0.3s ease;
-			opacity: 0.5;
-			pointer-events: none;
-		}
-
-		.floating-gps-btn.show {
 			opacity: 0.5;
 			pointer-events: auto;
 		}
@@ -1483,7 +1478,6 @@
 		function handleScroll() {
 			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
-			gpsBtn.classList.add('show');
 
 			// 滾動時：加上 scrolling class 讓 GPS 按鈕不透明 (opacity: 1)
 			gpsBtn.classList.add('scrolling');
@@ -1509,7 +1503,6 @@
 				gpsBtn.classList.remove('scrolling');
 
 				refreshBtn.classList.remove('show');
-				gpsBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
 			}, 2500);
 		}
