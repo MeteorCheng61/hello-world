@@ -159,8 +159,12 @@
 		}
 
 		.floating-gps-btn.show {
-			opacity: 1;
+			opacity: 0.8;
 			pointer-events: auto;
+		}
+
+		.floating-gps-btn.scrolling {
+			opacity: 1;
 		}
 
 		.floating-gps-btn.active {
@@ -169,6 +173,7 @@
 		}
 		.floating-gps-btn:hover {
 			transform: scale(1.08);
+			opacity: 1;
 		}
 		.floating-gps-btn:active {
 			transform: scale(0.95);
@@ -1480,6 +1485,9 @@
 			refreshBtn.classList.add('show');
 			gpsBtn.classList.add('show');
 
+			// 滾動時：加上 scrolling class 讓 GPS 按鈕不透明 (opacity: 1)
+			gpsBtn.classList.add('scrolling');
+
 			// 2. 處理全螢幕按鈕顯示 (行動裝置且為全螢幕時隱藏)
 			if (supportsFullscreenChange()) {
 				if (isMobileDevice() && isFullscreen()) {
@@ -1497,6 +1505,9 @@
 
 			// 4. 停止滑動 2.5 秒後統一自動隱藏所有按鈕
 			btnHideTimeout = setTimeout(function() {
+				// 停止滾動時：移除 scrolling class，回復成透明度 80% (opacity: 0.8)
+				gpsBtn.classList.remove('scrolling');
+
 				refreshBtn.classList.remove('show');
 				gpsBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
