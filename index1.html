@@ -154,13 +154,12 @@
 			user-select: none;
 			/* 新增以下過渡與隱藏設定 */
 			transition: background-color 0.3s ease, transform 0.2s ease, opacity 0.3s ease;
-			opacity: 0;
-			pointer-events: none;
+			opacity: 0.5;
+			pointer-events: auto;
 		}
 
-		.floating-gps-btn.show {
+		.floating-gps-btn.scrolling {
 			opacity: 1;
-			pointer-events: auto;
 		}
 
 		.floating-gps-btn.active {
@@ -172,6 +171,29 @@
 		}
 		.floating-gps-btn:active {
 			transform: scale(0.95);
+		}
+
+		.gps-mile-badge {
+			position: fixed;
+			top: 10px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: #038468; /* 淺綠底 */
+			color: #ffffff; /* 白字 */
+			padding: 3px 3px;
+			border-radius: 6px;
+			font-size: 24px;
+			font-weight: bold;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+			z-index: 10000;
+			pointer-events: none;
+			transition: opacity 0.3s ease;
+			opacity: 0;
+			white-space: nowrap;
+		}
+
+		.gps-mile-badge.show {
+			opacity: 1;
 		}
 
 		.scroll-percent-badge {
@@ -303,14 +325,17 @@
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
-<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
-<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">?</div>
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
+<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div id="gpsMileBadge" class="gps-mile-badge">--</div>
+
+<div class="floating-fullscreen-btn" id="fullscreenToggleBtn">⛶</div>
 
 <div id="scrollPercentBadge" class="scroll-percent-badge">位置：0%</div>
 <div class="floating-segment-btn prev-segment-btn" id="prevSegmentBtn"></div>
 <div class="floating-segment-btn next-segment-btn" id="nextSegmentBtn"></div>
 
-<h2 id="pageTitle">?️ 國道即時影像</h2>
+<h2 id="pageTitle">🛣️ 國道即時影像</h2>
 
 <!-- 道路與區間下拉選單容器 -->
 <div class="selector-container" id="selectorContainer">
@@ -707,8 +732,10 @@
 	let resetGpsTimer = null;
 	(function() {
 		const gpsBtn = document.getElementById('gpsToggleBtn');
+		const mileBadge = document.getElementById('gpsMileBadge'); // 新增里程標籤元素
 		let isGpsActive = false;
 		let gpsTimer = null;
+		let mileUpdateTimer = null; // 新增 2 秒里程更新 Timer
 		let lastCoords = null;
 
 		function getDistanceKm(lat1, lon1, lat2, lon2) {
@@ -753,6 +780,125 @@
 			}
 		}
 
+		// 計算當前里程的關鍵邏輯
+		function updateCurrentMile(currentLat, currentLon) {
+			if (!cctvData || cctvData.length === 0) return;
+
+			// 依序計算每一個影像點與當前 GPS 的距離
+			const validData = cctvData.map((item, index) => ({ item, index }))
+				.filter(d => d.item.lat && d.item.lon && d.item.locationMiles);
+
+			if (validData.length === 0) return;
+
+			let minDist = Infinity;
+			let closestIdx = -1;
+
+			validData.forEach((d, i) => {
+				const dist = getDistanceKm(currentLat, currentLon, parseFloat(d.item.lat), parseFloat(d.item.lon));
+				if (dist < minDist) {
+					minDist = dist;
+					closestIdx = i;
+				}
+			});
+
+			if (closestIdx === -1) return;
+
+			const currentPoint = validData[closestIdx];
+
+			// 1. 先嘗試向上尋找與 currentPoint 距離 >= 1 公里的點
+			let prevIdx = closestIdx - 1;
+			while (prevIdx >= 0) {
+				const dist = getDistanceKm(
+					parseFloat(validData[prevIdx].item.lat),
+					parseFloat(validData[prevIdx].item.lon),
+					parseFloat(currentPoint.item.lat),
+					parseFloat(currentPoint.item.lon)
+				);
+				if (dist >= 1.0) break;
+				prevIdx--;
+			}
+
+			// 2. 嘗試向下尋找與 currentPoint 距離 >= 1 公里的點
+			let nextIdx = closestIdx + 1;
+			while (nextIdx < validData.length) {
+				const dist = getDistanceKm(
+					parseFloat(validData[nextIdx].item.lat),
+					parseFloat(validData[nextIdx].item.lon),
+					parseFloat(currentPoint.item.lat),
+					parseFloat(currentPoint.item.lon)
+				);
+				if (dist >= 1.0) break;
+				nextIdx++;
+			}
+
+			let prevPoint = null;
+			let nextPoint = null;
+
+			// 3. 邊界防護邏輯處理
+			if (prevIdx < 0 && nextIdx >= validData.length) {
+				// 全區段總長度不足 1 公里時，直接顯示目前最近點里程
+				mileBadge.innerText = `${parseFloat(currentPoint.item.locationMiles).toFixed(1)}`;
+				return;
+			} else if (prevIdx < 0) {
+				// 【最前端防護】向上找不足 1KM 或已在最前端
+				// 取第一個參考點為 prevPoint
+				prevPoint = validData[0];
+				
+				// 從第一個點向下尋找第一個距離 >= 1KM 的點為 nextPoint
+				let findNext = 1;
+				while (findNext < validData.length) {
+					const dist = getDistanceKm(
+						parseFloat(validData[0].item.lat),
+						parseFloat(validData[0].item.lon),
+						parseFloat(validData[findNext].item.lat),
+						parseFloat(validData[findNext].item.lon)
+					);
+					if (dist >= 1.0) break;
+					findNext++;
+				}
+				nextPoint = findNext < validData.length ? validData[findNext] : validData[validData.length - 1];
+			} else if (nextIdx >= validData.length) {
+				// 【最後端防護】向下找不足 1KM 或已在最後端
+				// 取最後一個參考點為 nextPoint
+				const lastIdx = validData.length - 1;
+				nextPoint = validData[lastIdx];
+
+				// 從最後一點向上尋找第一個距離 >= 1KM 的點為 prevPoint
+				let findPrev = lastIdx - 1;
+				while (findPrev >= 0) {
+					const dist = getDistanceKm(
+						parseFloat(validData[lastIdx].item.lat),
+						parseFloat(validData[lastIdx].item.lon),
+						parseFloat(validData[findPrev].item.lat),
+						parseFloat(validData[findPrev].item.lon)
+					);
+					if (dist >= 1.0) break;
+					findPrev--;
+				}
+				prevPoint = findPrev >= 0 ? validData[findPrev] : validData[0];
+			} else {
+				// 一般情況
+				prevPoint = validData[prevIdx];
+				nextPoint = validData[nextIdx];
+			}
+
+			// 4. 計算與兩參考點的距離並進行內插
+			const dPrev = getDistanceKm(currentLat, currentLon, parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon));
+			const dNext = getDistanceKm(currentLat, currentLon, parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon));
+
+			const mPrev = parseFloat(prevPoint.item.locationMiles);
+			const mNext = parseFloat(nextPoint.item.locationMiles);
+
+			let calculatedMile = mPrev;
+			if (dPrev + dNext > 0) {
+				// 依據距離比例線性內插計算當前里程
+				const ratio = dPrev / (dPrev + dNext);
+				calculatedMile = mPrev + (mNext - mPrev) * ratio;
+			}
+
+			mileBadge.innerText = `${calculatedMile.toFixed(1)}`;
+		}
+
 		function trackAndScroll() {
 			if (!navigator.geolocation) {
 				alert('您的瀏覽器不支援 GPS 地理定位功能');
@@ -769,6 +915,9 @@
 						updateArrowIcon(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
 					}
 					lastCoords = { lat: currentLat, lon: currentLon };
+
+					// 立即計算並更新一次里程
+					updateCurrentMile(currentLat, currentLon);
 
 					let minDistance = Infinity;
 					let closestIndex = -1;
@@ -889,17 +1038,32 @@
 			isGpsActive = true;
 			gpsBtn.classList.add('active');
 			gpsBtn.innerText = '🧭';
+			mileBadge.classList.add('show'); // 顯示里程標籤
+
 			trackAndScroll();
 			gpsTimer = setInterval(trackAndScroll, 10000);
+
+			// 每 2 秒根據最新的 GPS 經緯度重新更新一次當前里程
+			mileUpdateTimer = setInterval(function() {
+				if (lastCoords) {
+					updateCurrentMile(lastCoords.lat, lastCoords.lon);
+				}
+			}, 2000);
 		}
 
 		function stopGps() {
 			isGpsActive = false;
 			gpsBtn.classList.remove('active');
 			gpsBtn.innerText = '🧭';
+			mileBadge.classList.remove('show'); // 隱藏里程標籤
+
 			if (gpsTimer) {
 				clearInterval(gpsTimer);
 				gpsTimer = null;
+			}
+			if (mileUpdateTimer) {
+				clearInterval(mileUpdateTimer);
+				mileUpdateTimer = null;
 			}
 			lastCoords = null;
 		}
@@ -1185,7 +1349,9 @@
 		function handleScroll() {
 			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
-			gpsBtn.classList.add('show');
+
+			// 滾動時：加上 scrolling class 讓 GPS 按鈕不透明 (opacity: 1)
+			gpsBtn.classList.add('scrolling');
 
 			// 2. 處理全螢幕按鈕顯示 (行動裝置且為全螢幕時隱藏)
 			if (supportsFullscreenChange()) {
@@ -1204,8 +1370,10 @@
 
 			// 4. 停止滑動 2.5 秒後統一自動隱藏所有按鈕
 			btnHideTimeout = setTimeout(function() {
+				// 停止滾動時：移除 scrolling class，回復成透明度
+				gpsBtn.classList.remove('scrolling');
+
 				refreshBtn.classList.remove('show');
-				gpsBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
 			}, 2500);
 		}
