@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1719</title>
+	<title>南崁 - 竹北 國一即時影像 1922</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -182,7 +182,7 @@
 			color: #ffffff; /* 白字 */
 			padding: 3px 3px;
 			border-radius: 6px;
-			font-size: 24px;
+			font-size: 30px;
 			font-weight: bold;
 			box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 			z-index: 10000;
@@ -194,6 +194,10 @@
 
 		.gps-mile-badge.show {
 			opacity: 1;
+		}
+
+		.gps-mile-badge.integer-style {
+			font-size: 36px;
 		}
 
 		.scroll-percent-badge {
@@ -856,6 +860,20 @@
 			}
 		}
 
+		// 統一處理里程顯示格式與字型大小
+		function setMileBadgeText(mileNumber) {
+			// 四捨五入到小數點第一位，避免浮點數精確度誤差 (例如 71.000000001)
+			const roundedMile = Math.round(mileNumber * 10) / 10;
+			
+			if (Number.isInteger(roundedMile)) {
+				mileBadge.innerText = roundedMile.toString(); // 不顯示小數點
+				mileBadge.classList.add('integer-style');      // 字型加大到 36px
+			} else {
+				mileBadge.innerText = roundedMile.toFixed(1);  // 顯示小數點一位
+				mileBadge.classList.remove('integer-style');   // 恢復 30px
+			}
+		}
+
 		// 計算當前里程的關鍵邏輯
 		function updateCurrentMile(currentLat, currentLon) {
 			if (!cctvData || cctvData.length === 0) return;
@@ -913,7 +931,7 @@
 			// 3. 邊界防護邏輯處理
 			if (prevIdx < 0 && nextIdx >= validData.length) {
 				// 全區段總長度不足 1 公里時，直接顯示目前最近點里程
-				mileBadge.innerText = `${parseFloat(currentPoint.item.locationMiles).toFixed(1)}`;
+				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
 				return;
 			} else if (prevIdx < 0) {
 				// 【最前端防護】向上找不足 1KM 或已在最前端
@@ -972,7 +990,8 @@
 				calculatedMile = mPrev + (mNext - mPrev) * ratio;
 			}
 
-			mileBadge.innerText = `${calculatedMile.toFixed(1)}`;
+			// 套用轉換函式
+			setMileBadgeText(calculatedMile);
 		}
 
 		function trackAndScroll() {
@@ -1483,7 +1502,7 @@
 		document.addEventListener('fullscreenchange', updateFullscreenBtnText);
 		document.addEventListener('webkitfullscreenchange', updateFullscreenBtnText);
 
-		// 註冊唯一的滾動事件監聽
+		//  註冊唯一的滾動事件監聽
 		window.addEventListener('scroll', handleScroll);
 	})();
 
