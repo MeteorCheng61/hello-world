@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1646</title>
+	<title>南崁 - 竹北 國一即時影像 1655</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -325,8 +325,8 @@
 
 <a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
-<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
-<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
+<div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">?</div>
+<div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">?</div>
 <div id="gpsMileBadge" class="gps-mile-badge">--</div>
 
 <div class="floating-fullscreen-btn" id="fullscreenToggleBtn">⛶</div>
@@ -335,7 +335,7 @@
 <div class="floating-segment-btn prev-segment-btn" id="prevSegmentBtn"></div>
 <div class="floating-segment-btn next-segment-btn" id="nextSegmentBtn"></div>
 
-<h2 id="pageTitle">🛣️ 國道即時影像</h2>
+<h2 id="pageTitle">?️ 國道即時影像</h2>
 
 <!-- 道路與區間下拉選單容器 -->
 <div class="selector-container" id="selectorContainer">
@@ -639,13 +639,13 @@
 		const selectedSegment = segmentSelect.value;
 
 		if (!selectedRoad || !selectedSegment || !All_Data[selectedRoad] || !All_Data[selectedRoad][selectedSegment]) {
-			document.getElementById('pageTitle').innerText = `🛣️ 國道即時影像`;
+			document.getElementById('pageTitle').innerText = `?️ 國道即時影像`;
 			cctvData = [];
 			clearCCTVData();
 			return;
 		}
 
-		document.getElementById('pageTitle').innerText = `🛣️ ${selectedRoad} (${selectedSegment}) 即時影像`;
+		document.getElementById('pageTitle').innerText = `?️ ${selectedRoad} (${selectedSegment}) 即時影像`;
 		cctvData = All_Data[selectedRoad][selectedSegment];
 		loadCCTVData();
 	}
@@ -996,7 +996,109 @@
 					// 立即計算並更新一次里程
 					updateCurrentMile(currentLat, currentLon);
 
-					/* ... 後續比對最近影像與滾動頁面邏輯維持不變 ... */
+					let minDistance = Infinity;
+					let closestIndex = -1;
+
+					cctvData.forEach((item, idx) => {
+						if (!item.lat || !item.lon) return;
+						const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+						if (dist < minDistance) {
+							minDistance = dist;
+							closestIndex = idx;
+						}
+					});
+
+					if (minDistance > 2) {
+						let globalMinDist = Infinity;
+						let bestRoad = null;
+						let bestSegment = null;
+
+						for (const roadKey in All_Data) {
+							for (const segKey in All_Data[roadKey]) {
+								const itemList = All_Data[roadKey][segKey];
+								itemList.forEach(item => {
+									if (item.lat && item.lon) {
+										const d = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+										if (d < globalMinDist) {
+											globalMinDist = d;
+											bestRoad = roadKey;
+											bestSegment = segKey;
+										}
+									}
+								});
+							}
+						}
+
+						if (bestRoad && bestSegment && (bestRoad !== roadSelect.value || bestSegment !== segmentSelect.value)) {
+							roadSelect.value = bestRoad;
+							onRoadChange();
+							segmentSelect.value = bestSegment;
+							onSegmentChange();
+							return;
+						}
+					}
+
+					if (closestIndex === -1) return;
+
+					const road = roadSelect.value;
+					const currentSeg = segmentSelect.value;
+					const segments = All_Data[road] ? Object.keys(All_Data[road]) : [];
+					const segIndex = segments.indexOf(currentSeg);
+
+					if (closestIndex <= 1 && segIndex > 0) {
+						const prevSegName = segments[segIndex - 1];
+						const prevSegData = All_Data[road][prevSegName] || [];
+						let prevMinDist = Infinity;
+
+						let foundCount = 0;
+						for (let i = prevSegData.length - 1; i >= 0; i--) {
+							const item = prevSegData[i];
+							if (item.lat && item.lon) {
+								const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+								if (dist < prevMinDist) {
+									prevMinDist = dist;
+								}
+								foundCount++;
+								if (foundCount >= 2) break;
+							}
+						}
+
+						if (prevMinDist < minDistance) {
+							const prevBtn = document.getElementById('prevSegmentBtn');
+							if (prevBtn) prevBtn.click();
+							return;
+						}
+					}
+
+					if (closestIndex >= cctvData.length - 2 && segIndex !== -1 && segIndex < segments.length - 1) {
+						const nextSegName = segments[segIndex + 1];
+						const nextSegData = All_Data[road][nextSegName] || [];
+						let nextMinDist = Infinity;
+
+						let foundCount = 0;
+						for (let i = 0; i < nextSegData.length; i++) {
+							const item = nextSegData[i];
+							if (item.lat && item.lon) {
+								const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+								if (dist < nextMinDist) {
+									nextMinDist = dist;
+								}
+								foundCount++;
+								if (foundCount >= 2) break;
+							}
+						}
+
+						if (nextMinDist < minDistance) {
+							const nextBtn = document.getElementById('nextSegmentBtn');
+							if (nextBtn) nextBtn.click();
+							return;
+						}
+					}
+
+					const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
+					if (targetBox) {
+						targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					}
 				},
 				function(error) {
 					console.warn('GPS 取得失敗:', error.message);
@@ -1013,7 +1115,7 @@
 			isGpsActive = true;
 			gpsBtn.classList.add('active');
 			DriverDIR = ''; // 重置 DriverDIR
-			gpsBtn.innerText = '🧭';
+			gpsBtn.innerText = '?';
 			mileBadge.classList.add('show'); // 顯示里程標籤
 
 			trackAndScroll();
@@ -1031,7 +1133,7 @@
 			isGpsActive = false;
 			gpsBtn.classList.remove('active');
 			DriverDIR = '';
-			gpsBtn.innerText = '🧭';
+			gpsBtn.innerText = '?';
 			mileBadge.classList.remove('show'); // 隱藏里程標籤
 
 			if (gpsTimer) {
@@ -1316,7 +1418,7 @@
 		// 更新全螢幕按鈕圖示與狀態
 		function updateFullscreenBtnText() {
 			if (isFullscreen()) {
-				fullscreenBtn.innerHTML = '🗗';
+				fullscreenBtn.innerHTML = '?';
 			} else {
 				fullscreenBtn.innerHTML = '⛶';
 			}
