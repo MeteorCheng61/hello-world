@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1943</title>
+	<title>南崁 - 竹北 國一即時影像 1237</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1008,11 +1008,41 @@
 					const currentLat = position.coords.latitude;
 					const currentLon = position.coords.longitude;
 
+					// 1. 尋找離當前座標最近的影像點 (currentPoint)
+					const validData = cctvData.map((item, index) => ({ item, index }))
+						.filter(d => d.item.lat && d.item.lon && d.item.locationMiles);
+
+					let currentPoint = null;
+					if (validData.length > 0) {
+						let minDist = Infinity;
+						validData.forEach((d) => {
+							const dist = getDistanceKm(currentLat, currentLon, parseFloat(d.item.lat), parseFloat(d.item.lon));
+							if (dist < minDist) {
+								minDist = dist;
+								currentPoint = d;
+							}
+						});
+					}
+
+					// 2. 條件判斷：新座標距離 currentPoint 超過 0.5 公里時才更新 lastCoords
+					if (currentPoint) {
+						const distToCurrentPoint = getDistanceKm(
+							currentLat, 
+							currentLon, 
+							parseFloat(currentPoint.item.lat), 
+							parseFloat(currentPoint.item.lon)
+						);
+
+						// 包含 !lastCoords 的防禦，確保初始時能記錄第一次座標
+						if (!lastCoords || distToCurrentPoint > 0.5) {
+							lastCoords = { lat: currentLat, lon: currentLon };
+						}
+					} else if (!lastCoords) {
+						lastCoords = { lat: currentLat, lon: currentLon };
+					}
+
 					// 更新 DriverDIR 並替換按鈕文字[cite: 1]
 					updateDriverDirection(currentLat, currentLon);
-
-					// 紀錄本次經緯度供下次比對
-					lastCoords = { lat: currentLat, lon: currentLon };
 
 					// 立即計算並更新一次里程
 					updateCurrentMile(currentLat, currentLon);
