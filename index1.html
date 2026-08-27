@@ -197,7 +197,7 @@
 		}
 
 		.gps-mile-badge.integer-style {
-			font-size: 36px;
+			font-size: 72px;
 		}
 
 		.scroll-percent-badge {
@@ -762,11 +762,11 @@
 			const dist = getDistanceKm(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
 			if (dist < 0.005) return;
 
-			// 取得目前資料集裡第一筆有設定 dir 的項目作為參考 (例如: "南", "北", "東", "西")[cite: 1]
+			// 取得目前資料集裡第一筆有設定 dir 的項目作為參考 (例如: "南", "北", "東", "西")
 			const currentDirItem = cctvData.find(item => item.dir);
 			const baseDir = currentDirItem ? currentDirItem.dir : '';
 
-			// 根據 All_Data 裡的 dir 判斷對應的 GPS 變化方向[cite: 1]
+			// 根據 All_Data 裡的 dir 判斷對應的 GPS 變化方向
 			if (baseDir === '南' || baseDir === '北') {
 				// 緯度往南遞減，往北遞增
 				if (currentLat < lastCoords.lat) {
@@ -783,7 +783,7 @@
 				}
 			}
 
-			// 更新按鈕文字為 DriverDIR[cite: 1]
+			// 更新按鈕文字為 DriverDIR
 			if (DriverDIR) {
 				gpsBtn.innerText = DriverDIR;
 			}
@@ -828,7 +828,7 @@
 
 			const currentPoint = validData[closestIdx];
 
-			// 1. 先嘗試向上尋找與 currentPoint 距離 >= 1 公里的點
+			// 1. 向上尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let prevIdx = closestIdx - 1;
 			while (prevIdx >= 0) {
 				const isSameDir = validData[prevIdx].item.dir === currentPoint.item.dir;
@@ -838,11 +838,11 @@
 					parseFloat(currentPoint.item.lat),
 					parseFloat(currentPoint.item.lon)
 				);
-				if (dist >= 1.0 && isSameDir) break;
+				if (isSameDir && dist > 0.3) break;
 				prevIdx--;
 			}
 
-			// 2. 嘗試向下尋找與 currentPoint 距離 >= 1 公里的點
+			// 2. 向下尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let nextIdx = closestIdx + 1;
 			while (nextIdx < validData.length) {
 				const isSameDir = validData[nextIdx].item.dir === currentPoint.item.dir;
@@ -852,62 +852,33 @@
 					parseFloat(currentPoint.item.lat),
 					parseFloat(currentPoint.item.lon)
 				);
-				if (dist >= 1.0 && isSameDir) break;
+				if (isSameDir && dist > 0.3) break;
 				nextIdx++;
 			}
 
 			let prevPoint = null;
 			let nextPoint = null;
 
-			// 3. 邊界防護邏輯處理
+			// 3. 邊界防護邏輯處理 (若兩端找不到滿 0.3KM 且同 dir 的參考點時之容錯處置)
 			if (prevIdx < 0 && nextIdx >= validData.length) {
-				// 全區段總長度不足 1 公里時，直接顯示目前最近點里程
+				// 雙向皆無 >0.3KM 且相同 dir 的參考點時，直接呈現當前最近點之里程
 				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
 				return;
 			} else if (prevIdx < 0) {
-				// 【最前端防護】向上找不足 1KM 或已在最前端
-				// 取第一個參考點為 prevPoint
-				prevPoint = validData[0];
-				
-				// 從第一個點向下尋找第一個距離 >= 1KM 的點為 nextPoint
-				let findNext = 1;
-				while (findNext < validData.length) {
-					const dist = getDistanceKm(
-						parseFloat(validData[0].item.lat),
-						parseFloat(validData[0].item.lon),
-						parseFloat(validData[findNext].item.lat),
-						parseFloat(validData[findNext].item.lon)
-					);
-					if (dist >= 1.0) break;
-					findNext++;
-				}
-				nextPoint = findNext < validData.length ? validData[findNext] : validData[validData.length - 1];
+				// 【最前端防護】向上找不足 0.3KM 或已在最前端
+				prevPoint = validData[closestIdx];
+				nextPoint = validData[nextIdx];
 			} else if (nextIdx >= validData.length) {
-				// 【最後端防護】向下找不足 1KM 或已在最後端
-				// 取最後一個參考點為 nextPoint
-				const lastIdx = validData.length - 1;
-				nextPoint = validData[lastIdx];
-
-				// 從最後一點向上尋找第一個距離 >= 1KM 的點為 prevPoint
-				let findPrev = lastIdx - 1;
-				while (findPrev >= 0) {
-					const dist = getDistanceKm(
-						parseFloat(validData[lastIdx].item.lat),
-						parseFloat(validData[lastIdx].item.lon),
-						parseFloat(validData[findPrev].item.lat),
-						parseFloat(validData[findPrev].item.lon)
-					);
-					if (dist >= 1.0) break;
-					findPrev--;
-				}
-				prevPoint = findPrev >= 0 ? validData[findPrev] : validData[0];
+				// 【最後端防護】向下找不足 0.3KM 或已在最後端
+				prevPoint = validData[prevIdx];
+				nextPoint = validData[closestIdx];
 			} else {
-				// 一般情況
+				// 一般標準情況
 				prevPoint = validData[prevIdx];
 				nextPoint = validData[nextIdx];
 			}
 
-			// 4. 計算與兩參考點的距離並進行內插
+			// 4. 計算與兩參考點的距離並進行線性內插
 			const dPrev = getDistanceKm(currentLat, currentLon, parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon));
 			const dNext = getDistanceKm(currentLat, currentLon, parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon));
 
@@ -921,7 +892,7 @@
 				calculatedMile = mPrev + (mNext - mPrev) * ratio;
 			}
 
-			// 套用轉換函式
+			// 套用轉換與格式化顯示
 			setMileBadgeText(calculatedMile);
 		}
 
@@ -937,7 +908,7 @@
 					const currentLat = position.coords.latitude;
 					const currentLon = position.coords.longitude;
 
-					// 更新 DriverDIR 並替換按鈕文字[cite: 1]
+					// 更新 DriverDIR 並替換按鈕文字
 					updateDriverDirection(currentLat, currentLon);
 
 					// 紀錄本次經緯度供下次比對
