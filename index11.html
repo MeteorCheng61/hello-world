@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>南崁 - 竹北 國一即時影像 1356</title>
+	<title>南崁 - 竹北 國一即時影像 1423</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -833,11 +833,11 @@
 			const dist = getDistanceKm(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
 			if (dist < 0.005) return;
 
-			// 取得目前資料集裡第一筆有設定 dir 的項目作為參考 (例如: "南", "北", "東", "西")[cite: 1]
+			// 取得目前資料集裡第一筆有設定 dir 的項目作為參考 (例如: "南", "北", "東", "西")
 			const currentDirItem = cctvData.find(item => item.dir);
 			const baseDir = currentDirItem ? currentDirItem.dir : '';
 
-			// 根據 All_Data 裡的 dir 判斷對應的 GPS 變化方向[cite: 1]
+			// 根據 All_Data 裡的 dir 判斷對應的 GPS 變化方向
 			if (baseDir === '南' || baseDir === '北') {
 				// 緯度往南遞減，往北遞增
 				if (currentLat < lastCoords.lat) {
@@ -854,7 +854,7 @@
 				}
 			}
 
-			// 更新按鈕文字為 DriverDIR[cite: 1]
+			// 更新按鈕文字為 DriverDIR
 			if (DriverDIR) {
 				gpsBtn.innerText = DriverDIR;
 			}
@@ -899,10 +899,10 @@
 
 			const currentPoint = validData[closestIdx];
 
-			// 1. 向上尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點[cite: 1]
+			// 1. 向上尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let prevIdx = closestIdx - 1;
 			while (prevIdx >= 0) {
-				const isSameDir = validData[prevIdx].item.dir === currentPoint.item.dir;[cite: 1]
+				const isSameDir = validData[prevIdx].item.dir === currentPoint.item.dir;
 				const dist = getDistanceKm(
 					parseFloat(validData[prevIdx].item.lat),
 					parseFloat(validData[prevIdx].item.lon),
@@ -913,10 +913,10 @@
 				prevIdx--;
 			}
 
-			// 2. 向下尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點[cite: 1]
+			// 2. 向下尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let nextIdx = closestIdx + 1;
 			while (nextIdx < validData.length) {
-				const isSameDir = validData[nextIdx].item.dir === currentPoint.item.dir;[cite: 1]
+				const isSameDir = validData[nextIdx].item.dir === currentPoint.item.dir;
 				const dist = getDistanceKm(
 					parseFloat(validData[nextIdx].item.lat),
 					parseFloat(validData[nextIdx].item.lon),
@@ -932,7 +932,7 @@
 
 			// 3. 邊界防護邏輯處理 (若兩端找不到滿 0.3KM 且同 dir 的參考點時之容錯處置)
 			if (prevIdx < 0 && nextIdx >= validData.length) {
-				// 雙向皆無 >0.3KM 且相同 dir 的參考點時，直接呈現當前最近點之里程[cite: 1]
+				// 雙向皆無 >0.3KM 且相同 dir 的參考點時，直接呈現當前最近點之里程
 				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
 				return;
 			} else if (prevIdx < 0) {
@@ -979,7 +979,7 @@
 					const currentLat = position.coords.latitude;
 					const currentLon = position.coords.longitude;
 
-					// 更新 DriverDIR 並替換按鈕文字[cite: 1]
+					// 更新 DriverDIR 並替換按鈕文字
 					updateDriverDirection(currentLat, currentLon);
 
 					// 紀錄本次經緯度供下次比對
