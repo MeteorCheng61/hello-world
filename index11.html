@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
-	<title>南崁 - 竹北 國一即時影像 1629</title>
+	<title>南崁 - 竹北 國一即時影像 1654</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -841,6 +841,7 @@
 		let DriverDIR = '';
 		let lastGpsUpdateTime = null; // 紀錄最後更新的時間戳記
 		let timerInterval = null;     // 每秒更新秒數顯示的計時器
+		let wakeLock = null;
 
 		function getDistanceKm(lat1, lon1, lat2, lon2) {
 			const R = 6371;
@@ -1106,6 +1107,26 @@
 			}
 		}
 		
+		// 請求螢幕不關閉
+		async function requestWakeLock() {
+			try {
+				if ('wakeLock' in navigator) {
+					wakeLock = await navigator.wakeLock.request('screen');
+				}
+			} catch (err) {
+				console.warn(`Wake Lock 啟用失敗: ${err.name}, ${err.message}`);
+			}
+		}
+
+		// 釋放螢幕鎖定（恢復預設休眠機制）
+		function releaseWakeLock() {
+			if (wakeLock !== null) {
+				wakeLock.release().then(() => {
+					wakeLock = null;
+				});
+			}
+		}
+
 		function startGps() {
 			if (!navigator.geolocation) {
 				alert('您的瀏覽器不支援 GPS 地理定位功能');
@@ -1121,6 +1142,9 @@
 			// 開啟每秒計時器，更新秒數
 			if (timerInterval) clearInterval(timerInterval);
 			timerInterval = setInterval(updateSecBadge, 1000);
+
+			// 新增：開啟 GPS 時，請求螢幕保持開啟
+			requestWakeLock();
 
 			// 【修改點】開啟 watchPosition 監聽
 			watchId = navigator.geolocation.watchPosition(
@@ -1142,6 +1166,9 @@
 			DriverDIR = '';
 			gpsBtn.innerText = '🧭';
 			mileBadge.classList.remove('show');
+
+			// 新增：關閉 GPS 時，釋放螢幕鎖定
+			releaseWakeLock();
 
 			// 清除秒數計時器
 			if (timerInterval) {
@@ -1170,6 +1197,13 @@
 				startGps();
 			}
 		});
+
+		document.addEventListener('visibilitychange', async () => {
+			if (wakeLock !== null && document.visibilityState === 'visible' && isGpsActive) {
+				await requestWakeLock();
+			}
+		});
+
 	})();
 
 	(function() {
