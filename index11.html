@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-	<title>南崁 - 竹北 國一即時影像 2006</title>
+	<title>南崁 - 竹北 國一即時影像 0851</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -899,7 +899,7 @@
 
 			const currentPoint = validData[closestIdx];
 
-			// 1. 向上尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
+			// 向上尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let prevIdx = closestIdx - 1;
 			while (prevIdx >= 0) {
 				const isSameDir = validData[prevIdx].item.dir === currentPoint.item.dir;
@@ -913,7 +913,7 @@
 				prevIdx--;
 			}
 
-			// 2. 向下尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
+			// 向下尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let nextIdx = closestIdx + 1;
 			while (nextIdx < validData.length) {
 				const isSameDir = validData[nextIdx].item.dir === currentPoint.item.dir;
@@ -927,29 +927,20 @@
 				nextIdx++;
 			}
 
-			let prevPoint = null;
-			let nextPoint = null;
-
-			// 3. 邊界防護邏輯處理 (若兩端找不到滿 0.3KM 且同 dir 的參考點時之容錯處置)
-			if (prevIdx < 0 && nextIdx >= validData.length) {
-				// 雙向皆無 >0.3KM 且相同 dir 的參考點時，直接呈現當前最近點之里程
+			// 若距離最近點小於 0.05 公里（50公尺內），直接採用該點里程，避免內插誤差
+			if (minDist < 0.05) {
 				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
 				return;
-			} else if (prevIdx < 0) {
-				// 【最前端防護】向上找不足 0.3KM 或已在最前端
-				prevPoint = validData[closestIdx];
-				nextPoint = validData[nextIdx];
-			} else if (nextIdx >= validData.length) {
-				// 【最後端防護】向下找不足 0.3KM 或已在最後端
-				prevPoint = validData[prevIdx];
-				nextPoint = validData[closestIdx];
-			} else {
-				// 一般標準情況
-				prevPoint = validData[prevIdx];
-				nextPoint = validData[nextIdx];
 			}
 
-			// 4. 計算與兩參考點的距離並進行線性內插
+			if (prevIdx < 0 && nextIdx >= validData.length) {
+				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
+				return;
+			}
+
+			let prevPoint = prevIdx >= 0 ? validData[prevIdx] : validData[closestIdx];
+			let nextPoint = nextIdx < validData.length ? validData[nextIdx] : validData[closestIdx];
+
 			const dPrev = getDistanceKm(currentLat, currentLon, parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon));
 			const dNext = getDistanceKm(currentLat, currentLon, parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon));
 
@@ -958,15 +949,13 @@
 
 			let calculatedMile = mPrev;
 			if (dPrev + dNext > 0) {
-				// 依據距離比例線性內插計算當前里程
-				const ratio = dPrev / (dPrev + dNext);
-				calculatedMile = mPrev + (mNext - mPrev) * ratio;
+				// 根據與兩點的距離反比權重進行精確線性內插
+				calculatedMile = (mPrev * dNext + mNext * dPrev) / (dPrev + dNext);
 			}
 
-			// 套用轉換與格式化顯示
 			setMileBadgeText(calculatedMile);
 		}
-
+		
 		function trackAndScroll() {
 			if (!navigator.geolocation) {
 				alert('您的瀏覽器不支援 GPS 地理定位功能');
