@@ -13,7 +13,7 @@
 		}
 		h2 {
 			text-align: center;
-			color: #1b5e20;
+			color: #31da47;
 			margin-bottom: 15px;
 			font-size: 24px;
 		}
@@ -200,6 +200,11 @@
 			font-size: 72px;
 		}
 
+		:fullscreen .gps-mile-badge,
+		:-webkit-full-screen .gps-mile-badge {
+			top: 5px;
+		}
+
 		.scroll-percent-badge {
 			position: fixed;
 			top: 10px;
@@ -322,12 +327,22 @@
 			transform: translateX(-50%) scale(0.95);
 		}
 
+		/* 針對「查詢其它路段」連結套用黃色與 hover 效果 */
+		a[href*="index2.html"] {
+			color: #fbc02d; /* 亮黃色，與 GPS 按鈕底色一致 */
+			font-weight: bold;
+			text-decoration: none;
+		}
+
+		a[href*="index2.html"]:hover {
+			color: #fff59d; /* 懸停時轉為較淺的黃色 */
+			text-decoration: underline;
+		}
+
 	</style>
 </head>
 <body>
 <div id="rightScrollZone" class="right-scroll-zone"></div>
-
-<a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
 
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
 <div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
