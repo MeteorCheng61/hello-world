@@ -2,7 +2,7 @@
 <html lang="zh-Hant-TW">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<style>
 		body {
@@ -733,13 +733,12 @@
 		});
 	});
 
-	let resetGpsTimer = null;
+	let resetGpsTimer = null; // 若外部仍有地方會呼叫 resetGpsTimer，可保留空函式或依需求調整
 	(function() {
 		const gpsBtn = document.getElementById('gpsToggleBtn');
-		const mileBadge = document.getElementById('gpsMileBadge'); // 新增里程標籤元素
+		const mileBadge = document.getElementById('gpsMileBadge');
 		let isGpsActive = false;
-		let gpsTimer = null;
-		let mileUpdateTimer = null; // 新增 2 秒里程更新 Timer
+		let watchId = null; // 【修改點】儲存 watchPosition 的 ID
 		let lastCoords = null;
 		let DriverDIR = '';
 
@@ -754,28 +753,22 @@
 			return R * c;
 		}
 
-		// 根據南北/東西方向與 GPS 變化更新 DriverDIR 與 gpsBtn.innerText
 		function updateDriverDirection(currentLat, currentLon) {
 			if (!lastCoords || !cctvData || cctvData.length === 0) return;
 
-			// 計算移動距離，避免極小微輻 GPS 甩動導致方向誤判 (小於 5 公尺忽略)
 			const dist = getDistanceKm(lastCoords.lat, lastCoords.lon, currentLat, currentLon);
 			if (dist < 0.005) return;
 
-			// 取得目前資料集裡第一筆有設定 dir 的項目作為參考 (例如: "南", "北", "東", "西")
 			const currentDirItem = cctvData.find(item => item.dir);
 			const baseDir = currentDirItem ? currentDirItem.dir : '';
 
-			// 根據 All_Data 裡的 dir 判斷對應的 GPS 變化方向
 			if (baseDir === '南' || baseDir === '北') {
-				// 緯度往南遞減，往北遞增
 				if (currentLat < lastCoords.lat) {
 					DriverDIR = '南';
 				} else if (currentLat > lastCoords.lat) {
 					DriverDIR = '北';
 				}
 			} else if (baseDir === '東' || baseDir === '西') {
-				// 經度往東遞增，往西遞減
 				if (currentLon > lastCoords.lon) {
 					DriverDIR = '東';
 				} else if (currentLon < lastCoords.lon) {
@@ -783,31 +776,26 @@
 				}
 			}
 
-			// 更新按鈕文字為 DriverDIR
 			if (DriverDIR) {
 				gpsBtn.innerText = DriverDIR;
 			}
 		}
 
-		// 統一處理里程顯示格式與字型大小
 		function setMileBadgeText(mileNumber) {
-			// 四捨五入到小數點第一位，避免浮點數精確度誤差 (例如 71.000000001)
 			const roundedMile = Math.round(mileNumber * 10) / 10;
 			
 			if (Number.isInteger(roundedMile)) {
-				mileBadge.innerText = roundedMile.toString(); // 不顯示小數點
-				mileBadge.classList.add('integer-style');      // 字型加大到 36px
+				mileBadge.innerText = roundedMile.toString();
+				mileBadge.classList.add('integer-style');
 			} else {
-				mileBadge.innerText = roundedMile.toFixed(1);  // 顯示小數點一位
-				mileBadge.classList.remove('integer-style');   // 恢復 30px
+				mileBadge.innerText = roundedMile.toFixed(1);
+				mileBadge.classList.remove('integer-style');
 			}
 		}
 
-		// 計算當前里程的關鍵邏輯
 		function updateCurrentMile(currentLat, currentLon) {
 			if (!cctvData || cctvData.length === 0) return;
 
-			// 依序計算每一個影像點與當前 GPS 的距離
 			const validData = cctvData.map((item, index) => ({ item, index }))
 				.filter(d => d.item.lat && d.item.lon && d.item.locationMiles);
 
@@ -828,7 +816,6 @@
 
 			const currentPoint = validData[closestIdx];
 
-			// 1. 向上尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let prevIdx = closestIdx - 1;
 			while (prevIdx >= 0) {
 				const isSameDir = validData[prevIdx].item.dir === currentPoint.item.dir;
@@ -842,7 +829,6 @@
 				prevIdx--;
 			}
 
-			// 2. 向下尋找與 currentPoint 同方向 (dir) 且距離 > 0.3 公里的最近點
 			let nextIdx = closestIdx + 1;
 			while (nextIdx < validData.length) {
 				const isSameDir = validData[nextIdx].item.dir === currentPoint.item.dir;
@@ -856,29 +842,19 @@
 				nextIdx++;
 			}
 
-			let prevPoint = null;
-			let nextPoint = null;
-
-			// 3. 邊界防護邏輯處理 (若兩端找不到滿 0.3KM 且同 dir 的參考點時之容錯處置)
-			if (prevIdx < 0 && nextIdx >= validData.length) {
-				// 雙向皆無 >0.3KM 且相同 dir 的參考點時，直接呈現當前最近點之里程
+			if (minDist < 0.05) {
 				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
 				return;
-			} else if (prevIdx < 0) {
-				// 【最前端防護】向上找不足 0.3KM 或已在最前端
-				prevPoint = validData[closestIdx];
-				nextPoint = validData[nextIdx];
-			} else if (nextIdx >= validData.length) {
-				// 【最後端防護】向下找不足 0.3KM 或已在最後端
-				prevPoint = validData[prevIdx];
-				nextPoint = validData[closestIdx];
-			} else {
-				// 一般標準情況
-				prevPoint = validData[prevIdx];
-				nextPoint = validData[nextIdx];
 			}
 
-			// 4. 計算與兩參考點的距離並進行線性內插
+			if (prevIdx < 0 && nextIdx >= validData.length) {
+				setMileBadgeText(parseFloat(currentPoint.item.locationMiles));
+				return;
+			}
+
+			let prevPoint = prevIdx >= 0 ? validData[prevIdx] : validData[closestIdx];
+			let nextPoint = nextIdx < validData.length ? validData[nextIdx] : validData[closestIdx];
+
 			const dPrev = getDistanceKm(currentLat, currentLon, parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon));
 			const dNext = getDistanceKm(currentLat, currentLon, parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon));
 
@@ -887,167 +863,155 @@
 
 			let calculatedMile = mPrev;
 			if (dPrev + dNext > 0) {
-				// 依據距離比例線性內插計算當前里程
-				const ratio = dPrev / (dPrev + dNext);
-				calculatedMile = mPrev + (mNext - mPrev) * ratio;
+				calculatedMile = (mPrev * dNext + mNext * dPrev) / (dPrev + dNext);
 			}
 
-			// 套用轉換與格式化顯示
 			setMileBadgeText(calculatedMile);
 		}
 
-		function trackAndScroll() {
-			if (!navigator.geolocation) {
-				alert('您的瀏覽器不支援 GPS 地理定位功能');
-				stopGps();
-				return;
+		// 處理每次位置變更的邏輯
+		function handlePositionUpdate(position) {
+			const currentLat = position.coords.latitude;
+			const currentLon = position.coords.longitude;
+
+			// 更新 DriverDIR 並替換按鈕文字
+			updateDriverDirection(currentLat, currentLon);
+
+			// 紀錄本次經緯度供下次比對
+			lastCoords = { lat: currentLat, lon: currentLon };
+
+			// 只有在 GPS 更新時才計算並顯示當前里程
+			updateCurrentMile(currentLat, currentLon);
+
+			let minDistance = Infinity;
+			let closestIndex = -1;
+
+			cctvData.forEach((item, idx) => {
+				if (!item.lat || !item.lon) return;
+				const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+				if (dist < minDistance) {
+					minDistance = dist;
+					closestIndex = idx;
+				}
+			});
+
+			if (minDistance > 2) {
+				let globalMinDist = Infinity;
+				let bestRoad = null;
+				let bestSegment = null;
+
+				for (const roadKey in All_Data) {
+					for (const segKey in All_Data[roadKey]) {
+						const itemList = All_Data[roadKey][segKey];
+						itemList.forEach(item => {
+							if (item.lat && item.lon) {
+								const d = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+								if (d < globalMinDist) {
+									globalMinDist = d;
+									bestRoad = roadKey;
+									bestSegment = segKey;
+								}
+							}
+						});
+					}
+				}
+
+				if (bestRoad && bestSegment && (bestRoad !== roadSelect.value || bestSegment !== segmentSelect.value)) {
+					roadSelect.value = bestRoad;
+					onRoadChange();
+					segmentSelect.value = bestSegment;
+					onSegmentChange();
+					return;
+				}
 			}
 
-			navigator.geolocation.getCurrentPosition(
-				function(position) {
-					const currentLat = position.coords.latitude;
-					const currentLon = position.coords.longitude;
+			if (closestIndex === -1) return;
 
-					// 更新 DriverDIR 並替換按鈕文字
-					updateDriverDirection(currentLat, currentLon);
+			const road = roadSelect.value;
+			const currentSeg = segmentSelect.value;
+			const segments = All_Data[road] ? Object.keys(All_Data[road]) : [];
+			const segIndex = segments.indexOf(currentSeg);
 
-					// 紀錄本次經緯度供下次比對
-					lastCoords = { lat: currentLat, lon: currentLon };
+			if (closestIndex <= 1 && segIndex > 0) {
+				const prevSegName = segments[segIndex - 1];
+				const prevSegData = All_Data[road][prevSegName] || [];
+				let prevMinDist = Infinity;
 
-					// 立即計算並更新一次里程
-					updateCurrentMile(currentLat, currentLon);
-
-					let minDistance = Infinity;
-					let closestIndex = -1;
-
-					cctvData.forEach((item, idx) => {
-						if (!item.lat || !item.lon) return;
+				let foundCount = 0;
+				for (let i = prevSegData.length - 1; i >= 0; i--) {
+					const item = prevSegData[i];
+					if (item.lat && item.lon) {
 						const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-						if (dist < minDistance) {
-							minDistance = dist;
-							closestIndex = idx;
+						if (dist < prevMinDist) {
+							prevMinDist = dist;
 						}
-					});
-
-					if (minDistance > 2) {
-						let globalMinDist = Infinity;
-						let bestRoad = null;
-						let bestSegment = null;
-
-						for (const roadKey in All_Data) {
-							for (const segKey in All_Data[roadKey]) {
-								const itemList = All_Data[roadKey][segKey];
-								itemList.forEach(item => {
-									if (item.lat && item.lon) {
-										const d = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-										if (d < globalMinDist) {
-											globalMinDist = d;
-											bestRoad = roadKey;
-											bestSegment = segKey;
-										}
-									}
-								});
-							}
-						}
-
-						if (bestRoad && bestSegment && (bestRoad !== roadSelect.value || bestSegment !== segmentSelect.value)) {
-							roadSelect.value = bestRoad;
-							onRoadChange();
-							segmentSelect.value = bestSegment;
-							onSegmentChange();
-							return;
-						}
+						foundCount++;
+						if (foundCount >= 2) break;
 					}
-
-					if (closestIndex === -1) return;
-
-					const road = roadSelect.value;
-					const currentSeg = segmentSelect.value;
-					const segments = All_Data[road] ? Object.keys(All_Data[road]) : [];
-					const segIndex = segments.indexOf(currentSeg);
-
-					if (closestIndex <= 1 && segIndex > 0) {
-						const prevSegName = segments[segIndex - 1];
-						const prevSegData = All_Data[road][prevSegName] || [];
-						let prevMinDist = Infinity;
-
-						let foundCount = 0;
-						for (let i = prevSegData.length - 1; i >= 0; i--) {
-							const item = prevSegData[i];
-							if (item.lat && item.lon) {
-								const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-								if (dist < prevMinDist) {
-									prevMinDist = dist;
-								}
-								foundCount++;
-								if (foundCount >= 2) break;
-							}
-						}
-
-						if (prevMinDist < minDistance) {
-							const prevBtn = document.getElementById('prevSegmentBtn');
-							if (prevBtn) prevBtn.click();
-							return;
-						}
-					}
-
-					if (closestIndex >= cctvData.length - 2 && segIndex !== -1 && segIndex < segments.length - 1) {
-						const nextSegName = segments[segIndex + 1];
-						const nextSegData = All_Data[road][nextSegName] || [];
-						let nextMinDist = Infinity;
-
-						let foundCount = 0;
-						for (let i = 0; i < nextSegData.length; i++) {
-							const item = nextSegData[i];
-							if (item.lat && item.lon) {
-								const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
-								if (dist < nextMinDist) {
-									nextMinDist = dist;
-								}
-								foundCount++;
-								if (foundCount >= 2) break;
-							}
-						}
-
-						if (nextMinDist < minDistance) {
-							const nextBtn = document.getElementById('nextSegmentBtn');
-							if (nextBtn) nextBtn.click();
-							return;
-						}
-					}
-
-					const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
-					if (targetBox) {
-						targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-					}
-				},
-				function(error) {
-					console.warn('GPS 取得失敗:', error.message);
-				},
-				{
-					enableHighAccuracy: true,
-					timeout: 2500,
-					maximumAge: 0
 				}
-			);
+
+				if (prevMinDist < minDistance) {
+					const prevBtn = document.getElementById('prevSegmentBtn');
+					if (prevBtn) prevBtn.click();
+					return;
+				}
+			}
+
+			if (closestIndex >= cctvData.length - 2 && segIndex !== -1 && segIndex < segments.length - 1) {
+				const nextSegName = segments[segIndex + 1];
+				const nextSegData = All_Data[road][nextSegName] || [];
+				let nextMinDist = Infinity;
+
+				let foundCount = 0;
+				for (let i = 0; i < nextSegData.length; i++) {
+					const item = nextSegData[i];
+					if (item.lat && item.lon) {
+						const dist = getDistanceKm(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon));
+						if (dist < nextMinDist) {
+							nextMinDist = dist;
+						}
+						foundCount++;
+						if (foundCount >= 2) break;
+					}
+				}
+
+				if (nextMinDist < minDistance) {
+					const nextBtn = document.getElementById('nextSegmentBtn');
+					if (nextBtn) nextBtn.click();
+					return;
+				}
+			}
+
+			const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
+			if (targetBox) {
+				targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
 		}
 		
 		function startGps() {
+			if (!navigator.geolocation) {
+				alert('您的瀏覽器不支援 GPS 地理定位功能');
+				return;
+			}
+
 			isGpsActive = true;
 			gpsBtn.classList.add('active');
-			DriverDIR = ''; // 重置 DriverDIR
+			DriverDIR = '';
 			gpsBtn.innerText = '🧭';
-			mileBadge.classList.add('show'); // 顯示里程標籤
+			mileBadge.classList.add('show');
 
-			trackAndScroll();
-			gpsTimer = setInterval(trackAndScroll, 10000);
-
-			// 每 2 秒根據最新的 GPS 經緯度重新更新一次當前里程
-			mileUpdateTimer = setInterval(function() {
-				if (lastCoords) {
-					updateCurrentMile(lastCoords.lat, lastCoords.lon);
+			// 【修改點】開啟 watchPosition 監聽
+			watchId = navigator.geolocation.watchPosition(
+				handlePositionUpdate,
+				function(error) {
+					// console.warn('GPS 追蹤失敗:', error.message);
+				},
+				{
+					enableHighAccuracy: true,
+					timeout: 10000,
+					maximumAge: 0
 				}
-			}, 2000);
+			);
 		}
 
 		function stopGps() {
@@ -1055,25 +1019,19 @@
 			gpsBtn.classList.remove('active');
 			DriverDIR = '';
 			gpsBtn.innerText = '🧭';
-			mileBadge.classList.remove('show'); // 隱藏里程標籤
+			mileBadge.classList.remove('show');
 
-			if (gpsTimer) {
-				clearInterval(gpsTimer);
-				gpsTimer = null;
-			}
-			if (mileUpdateTimer) {
-				clearInterval(mileUpdateTimer);
-				mileUpdateTimer = null;
+			// 【修改點】停止 watchPosition 監聽
+			if (watchId !== null) {
+				navigator.geolocation.clearWatch(watchId);
+				watchId = null;
 			}
 			lastCoords = null;
 		}
 
+		// 因為 watchPosition 會自動監聽 updates，不需要再手動 reset timer
 		resetGpsTimer = function() {
-			if (!isGpsActive) return;
-			if (gpsTimer) {
-				clearInterval(gpsTimer);
-			}
-			gpsTimer = setInterval(trackAndScroll, 5000);
+			// 若原先其他手動操作（如切換路段）需要強制重刷，可在此重新觸發一次，或保持空實作
 		};
 
 		gpsBtn.addEventListener('click', function() {
