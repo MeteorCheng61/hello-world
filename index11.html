@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2042
+	V1.2050
 	</div>
 	
 	<style>
@@ -532,7 +532,7 @@
 
 	let cctvData = [];
 	let activeTimers = []; 
-	let ScrollingTimeout = 0;
+	let ScrollingCountDown = 0;
 	let scrollingInterval = null;
 
 	const cameraControllers = [];
@@ -671,18 +671,18 @@
 		container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
 	}
 
-	// 啟動或重設 ScrollingTimeout 倒數機制
-	function triggerScrollingTimeout() {
+	// 啟動或重設 ScrollingCountDown 倒數機制
+	function TriggerScrolling() {
 		// 每次滑動均重設為 10
-		ScrollingTimeout = 10;
+		ScrollingCountDown = 10;
 
 		// 若尚未啟動每秒計時器，則啟動
 		if (!scrollingInterval) {
 			scrollingInterval = setInterval(() => {
-				if (ScrollingTimeout > 0) {
-					ScrollingTimeout--;
+				if (ScrollingCountDown > 0) {
+					ScrollingCountDown--;
 				} else {
-					ScrollingTimeout = 0;
+					ScrollingCountDown = 0;
 					clearInterval(scrollingInterval);
 					scrollingInterval = null;
 				}
@@ -1095,7 +1095,7 @@
 					}
 				}
 
-				if (ScrollingTimeout === 0 && prevMinDist < minDistance) {
+				if (ScrollingCountDown === 0 && prevMinDist < minDistance) {
 					const prevBtn = document.getElementById('prevSegmentBtn');
 					if (prevBtn) prevBtn.click();
 					return;
@@ -1120,14 +1120,14 @@
 					}
 				}
 
-				if (ScrollingTimeout === 0 && nextMinDist < minDistance) {
+				if (ScrollingCountDown === 0 && nextMinDist < minDistance) {
 					const nextBtn = document.getElementById('nextSegmentBtn');
 					if (nextBtn) nextBtn.click();
 					return;
 				}
 			}
 
-			if (ScrollingTimeout === 0) {
+			if (ScrollingCountDown === 0) {
 				const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
 				if (targetBox) {
 					targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1167,8 +1167,8 @@
 			gpsBtn.innerText = '🧭';
 			mileBadge.classList.add('show');
 
-			// 【新增/修復點】按下 GPS 按鈕時，強制將 ScrollingTimeout 清零，確保可以立刻 Scrolling 到位置
-			ScrollingTimeout = 0;
+			// 【新增/修復點】按下 GPS 按鈕時，強制將 ScrollingCountDown 清零，確保可以立刻 Scrolling 到位置
+			ScrollingCountDown = 0;
 
 			// 開啟每秒計時器，更新秒數
 			if (timerInterval) clearInterval(timerInterval);
@@ -1321,7 +1321,6 @@
 		let isInteracting = false;
 
 		function scrollToYRatio(clientY) {
-			// triggerScrollingTimeout();
 
 			const viewportHeight = window.innerHeight;
 			const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
@@ -1344,13 +1343,11 @@
 
 		zone.addEventListener('touchmove', function(e) {
 			if (!isInteracting) return;
-			// triggerScrollingTimeout();
 			scrollToYRatio(e.touches[0].clientY);
 		}, { passive: true });
 
 		zone.addEventListener('touchend', function() {
 			isInteracting = false;
-			// triggerScrollingTimeout();
 		});
 
 		zone.addEventListener('mousedown', function(e) {
@@ -1366,7 +1363,6 @@
 		window.addEventListener('mouseup', function() {
 			if (isInteracting) {
 				isInteracting = false;
-				// triggerScrollingTimeout(); // 鬆開滑鼠時再次確保觸發 10 秒倒數
 			}
 		});
 	})();
@@ -1535,8 +1531,7 @@
 				refreshBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
 			}, 2500);
-			triggerScrollingTimeout();
-
+			TriggerScrolling();
 		}
 
 		// 點擊全螢幕按鈕切換邏輯
