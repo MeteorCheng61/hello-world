@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.1621
+	V1.2004
 	</div>
 	
 	<style>
@@ -533,6 +533,7 @@
 	let cctvData = [];
 	let activeTimers = []; 
 	let ScrollingTimeout = 0;
+	let scrollingInterval = null;
 
 	const cameraControllers = [];
 	const container = document.getElementById('cctvGridContainer');
@@ -1020,7 +1021,7 @@
 				}
 			});
 
-			if (minDistance > 2) {
+			if (minDistance > 1) {
 				let globalMinDist = Infinity;
 				let bestRoad = null;
 				let bestSegment = null;
@@ -1296,7 +1297,6 @@
 	(function() {
 		const zone = document.getElementById('rightScrollZone');
 		let isInteracting = false;
-		let scrollingInterval = null;
 
 		// 啟動或重設 ScrollingTimeout 倒數機制
 		function triggerScrollingTimeout() {
