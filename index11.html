@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2004
+	V1.2017
 	</div>
 	
 	<style>
@@ -1076,7 +1076,7 @@
 					}
 				}
 
-				if (prevMinDist < minDistance) {
+				if (ScrollingTimeout === 0 && prevMinDist < minDistance) {
 					const prevBtn = document.getElementById('prevSegmentBtn');
 					if (prevBtn) prevBtn.click();
 					return;
@@ -1101,7 +1101,7 @@
 					}
 				}
 
-				if (nextMinDist < minDistance) {
+				if (ScrollingTimeout === 0 && nextMinDist < minDistance) {
 					const nextBtn = document.getElementById('nextSegmentBtn');
 					if (nextBtn) nextBtn.click();
 					return;
