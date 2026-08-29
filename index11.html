@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2050
+	V1.2103
 	</div>
 	
 	<style>
@@ -1011,7 +1011,11 @@
 			// 取得當前的里程數字 (從內部 dataset 或變數取得)
 			const currentMileText = mileBadge.getAttribute('data-mile') || '--';
 			
-			mileBadge.innerHTML = `${currentMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
+			if (elapsedSec === 0) {
+				mileBadge.innerHTML = currentMileText;
+			} else {
+				mileBadge.innerHTML = `${currentMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
+			}
 		}
 
 		// 處理每次位置變更的邏輯
