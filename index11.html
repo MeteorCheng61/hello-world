@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2025
+	V1.2030
 	</div>
 	
 	<style>
@@ -1318,7 +1318,7 @@
 		let isInteracting = false;
 
 		function scrollToYRatio(clientY) {
-			triggerScrollingTimeout();
+			// triggerScrollingTimeout();
 
 			const viewportHeight = window.innerHeight;
 			const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
@@ -1341,13 +1341,13 @@
 
 		zone.addEventListener('touchmove', function(e) {
 			if (!isInteracting) return;
-			triggerScrollingTimeout();
+			// triggerScrollingTimeout();
 			scrollToYRatio(e.touches[0].clientY);
 		}, { passive: true });
 
 		zone.addEventListener('touchend', function() {
 			isInteracting = false;
-			triggerScrollingTimeout();
+			// triggerScrollingTimeout();
 		});
 
 		zone.addEventListener('mousedown', function(e) {
@@ -1363,7 +1363,7 @@
 		window.addEventListener('mouseup', function() {
 			if (isInteracting) {
 				isInteracting = false;
-				triggerScrollingTimeout(); // 鬆開滑鼠時再次確保觸發 10 秒倒數
+				// triggerScrollingTimeout(); // 鬆開滑鼠時再次確保觸發 10 秒倒數
 			}
 		});
 	})();
