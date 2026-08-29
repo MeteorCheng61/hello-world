@@ -2,8 +2,12 @@
 <html lang="zh-Hant-TW">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
+	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
+	V1.2205
+	</div>
+	
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -180,7 +184,7 @@
 			transform: translateX(-50%);
 			background-color: #038468; /* 淺綠底 */
 			color: #ffffff; /* 白字 */
-			padding: 3px 3px;
+			padding: 3px 8px;
 			border-radius: 6px;
 			font-size: 30px;
 			font-weight: bold;
@@ -189,7 +193,8 @@
 			pointer-events: none;
 			transition: opacity 0.3s ease;
 			opacity: 0;
-			white-space: nowrap;
+			white-space: pre-line; /* 新增：允許 \n 換行 */
+			text-align: center;    /* 新增：文字居中 */
 		}
 
 		.gps-mile-badge.show {
@@ -198,6 +203,14 @@
 
 		.gps-mile-badge.integer-style {
 			font-size: 72px;
+		}
+
+		/* 小字秒數樣式（透過原本 style 裡面的 span 調整） */
+		.gps-mile-badge .sec-text {
+			font-size: 14px;
+			font-weight: normal;
+			display: block;
+			margin-top: -2px;
 		}
 
 		:fullscreen .gps-mile-badge,
@@ -344,6 +357,8 @@
 <body>
 <div id="rightScrollZone" class="right-scroll-zone"></div>
 
+<a href="https://hmlyhawk.netlify.app/index2.html" target="_blank" rel="noopener noreferrer">查詢其它路段</a><br>
+
 <div class="floating-refresh-btn" id="globalRefreshBtn" title="重新整理">🔄</div>
 <div class="floating-gps-btn" id="gpsToggleBtn" title="開啟 GPS 定位 tracking">🧭</div>
 <div id="gpsMileBadge" class="gps-mile-badge">--</div>
@@ -446,6 +461,9 @@
 
 	let cctvData = [];
 	let activeTimers = []; 
+	let ScrollingCountDown = 0;
+	let scrollingInterval = null;
+
 	const cameraControllers = [];
 	const container = document.getElementById('cctvGridContainer');
 	const roadSelect = document.getElementById('roadSelect');
@@ -582,6 +600,25 @@
 		container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
 	}
 
+	// 啟動或重設 ScrollingCountDown 倒數機制
+	function TriggerScrolling() {
+		// 每次滑動均重設為 10
+		ScrollingCountDown = 10;
+
+		// 若尚未啟動每秒計時器，則啟動
+		if (!scrollingInterval) {
+			scrollingInterval = setInterval(() => {
+				if (ScrollingCountDown > 0) {
+					ScrollingCountDown--;
+				} else {
+					ScrollingCountDown = 0;
+					clearInterval(scrollingInterval);
+					scrollingInterval = null;
+				}
+			}, 1000);
+		}
+	}
+
 	function onSegmentChange() {
 		const selectedRoad = roadSelect.value;
 		const selectedSegment = segmentSelect.value;
@@ -712,7 +749,8 @@
 			});
 			
 			const freezeTimer = setInterval(function() {
-				if (!isFrozen && (Date.now() - lastUpdate > 10000)) {
+				const isInView = box.getAttribute('data-in-view') === 'true';
+				if (isInView && !isFrozen && (Date.now() - lastUpdate > 18000)) {
 					retryCount = 0;
 					freezeThisCamera();
 				}
@@ -756,6 +794,9 @@
 		let watchId = null; // 【修改點】儲存 watchPosition 的 ID
 		let lastCoords = null;
 		let DriverDIR = '';
+		let lastGpsUpdateTime = null; // 紀錄最後更新的時間戳記
+		let timerInterval = null;     // 每秒更新秒數顯示的計時器
+		let wakeLock = null;
 
 		function getDistanceKm(lat1, lon1, lat2, lon2) {
 			const R = 6371;
@@ -798,14 +839,22 @@
 
 		function setMileBadgeText(mileNumber) {
 			const roundedMile = Math.round(mileNumber * 10) / 10;
+			let mileStr = '';
 			
 			if (Number.isInteger(roundedMile)) {
-				mileBadge.innerText = roundedMile.toString();
+				mileStr = roundedMile.toString();
 				mileBadge.classList.add('integer-style');
 			} else {
-				mileBadge.innerText = roundedMile.toFixed(1);
+				mileStr = roundedMile.toFixed(1);
 				mileBadge.classList.remove('integer-style');
 			}
+
+			// 紀錄這次更新的時間與目前的里程數字
+			lastGpsUpdateTime = Date.now();
+			mileBadge.setAttribute('data-mile', mileStr);
+
+			// 立即更新一次畫面
+			updateSecBadge();
 		}
 
 		function updateCurrentMile(currentLat, currentLon) {
@@ -884,6 +933,20 @@
 			setMileBadgeText(calculatedMile);
 		}
 
+		function updateSecBadge() {
+			if (!lastGpsUpdateTime) return;
+			const elapsedSec = Math.floor((Date.now() - lastGpsUpdateTime) / 1000);
+			
+			// 取得當前的里程數字 (從內部 dataset 或變數取得)
+			const currentMileText = mileBadge.getAttribute('data-mile') || '--';
+			
+			if (elapsedSec === 0) {
+				mileBadge.innerHTML = currentMileText;
+			} else {
+				mileBadge.innerHTML = `${currentMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
+			}
+		}
+
 		// 處理每次位置變更的邏輯
 		function handlePositionUpdate(position) {
 			const currentLat = position.coords.latitude;
@@ -910,7 +973,7 @@
 				}
 			});
 
-			if (minDistance > 2) {
+			if (minDistance > 1) {
 				let globalMinDist = Infinity;
 				let bestRoad = null;
 				let bestSegment = null;
@@ -965,7 +1028,7 @@
 					}
 				}
 
-				if (prevMinDist < minDistance) {
+				if (ScrollingCountDown === 0 && prevMinDist < minDistance) {
 					const prevBtn = document.getElementById('prevSegmentBtn');
 					if (prevBtn) prevBtn.click();
 					return;
@@ -990,19 +1053,41 @@
 					}
 				}
 
-				if (nextMinDist < minDistance) {
+				if (ScrollingCountDown === 0 && nextMinDist < minDistance) {
 					const nextBtn = document.getElementById('nextSegmentBtn');
 					if (nextBtn) nextBtn.click();
 					return;
 				}
 			}
 
-			const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
-			if (targetBox) {
-				targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			if (ScrollingCountDown === 0) {
+				const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
+				if (targetBox) {
+					targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				}
 			}
 		}
 		
+		// 請求螢幕不關閉
+		async function requestWakeLock() {
+			try {
+				if ('wakeLock' in navigator) {
+					wakeLock = await navigator.wakeLock.request('screen');
+				}
+			} catch (err) {
+				console.warn(`Wake Lock 啟用失敗: ${err.name}, ${err.message}`);
+			}
+		}
+
+		// 釋放螢幕鎖定（恢復預設休眠機制）
+		function releaseWakeLock() {
+			if (wakeLock !== null) {
+				wakeLock.release().then(() => {
+					wakeLock = null;
+				});
+			}
+		}
+
 		function startGps() {
 			if (!navigator.geolocation) {
 				alert('您的瀏覽器不支援 GPS 地理定位功能');
@@ -1014,6 +1099,16 @@
 			DriverDIR = '';
 			gpsBtn.innerText = '🧭';
 			mileBadge.classList.add('show');
+
+			// 【新增/修復點】按下 GPS 按鈕時，強制將 ScrollingCountDown 清零，確保可以立刻 Scrolling 到位置
+			ScrollingCountDown = 0;
+
+			// 開啟每秒計時器，更新秒數
+			if (timerInterval) clearInterval(timerInterval);
+			timerInterval = setInterval(updateSecBadge, 1000);
+
+			// 新增：開啟 GPS 時，請求螢幕保持開啟
+			requestWakeLock();
 
 			// 【修改點】開啟 watchPosition 監聽
 			watchId = navigator.geolocation.watchPosition(
@@ -1036,12 +1131,22 @@
 			gpsBtn.innerText = '🧭';
 			mileBadge.classList.remove('show');
 
+			// 新增：關閉 GPS 時，釋放螢幕鎖定
+			releaseWakeLock();
+
+			// 清除秒數計時器
+			if (timerInterval) {
+				clearInterval(timerInterval);
+				timerInterval = null;
+			}
+
 			// 【修改點】停止 watchPosition 監聽
 			if (watchId !== null) {
 				navigator.geolocation.clearWatch(watchId);
 				watchId = null;
 			}
 			lastCoords = null;
+			lastGpsUpdateTime = null;
 		}
 
 		// 因為 watchPosition 會自動監聽 updates，不需要再手動 reset timer
@@ -1056,6 +1161,13 @@
 				startGps();
 			}
 		});
+
+		document.addEventListener('visibilitychange', async () => {
+			if (wakeLock !== null && document.visibilityState === 'visible' && isGpsActive) {
+				await requestWakeLock();
+			}
+		});
+
 	})();
 
 	(function() {
@@ -1142,6 +1254,7 @@
 		let isInteracting = false;
 
 		function scrollToYRatio(clientY) {
+
 			const viewportHeight = window.innerHeight;
 			const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
 			const ratio = clampedY / viewportHeight;
@@ -1181,7 +1294,9 @@
 		});
 
 		window.addEventListener('mouseup', function() {
-			isInteracting = false;
+			if (isInteracting) {
+				isInteracting = false;
+			}
 		});
 	})();
 
@@ -1349,6 +1464,7 @@
 				refreshBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
 			}, 2500);
+			TriggerScrolling();
 		}
 
 		// 點擊全螢幕按鈕切換邏輯
@@ -1380,6 +1496,7 @@
 		//  註冊唯一的滾動事件監聽
 		window.addEventListener('scroll', handleScroll);
 	})();
+
 
 </script>
 </body>
