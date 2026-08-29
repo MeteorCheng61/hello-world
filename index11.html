@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.1546
+	V1.1604
 	</div>
 	
 	<style>
@@ -1105,9 +1105,11 @@
 				}
 			}
 
-			const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
-			if (targetBox) {
-				targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			if (ScrollingTimeout === 0) {
+				const targetBox = document.querySelector(`.cctv-box[data-index="${closestIndex}"]`);
+				if (targetBox) {
+					targetBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				}
 			}
 		}
 		
@@ -1319,10 +1321,7 @@
 
 
 		function scrollToYRatio(clientY) {
-			// 只有在 ScrollingTimeout = 0 時才可以執行 window.scrollTo
-			if (ScrollingTimeout !== 0) {
-				return;
-			}
+			triggerScrollingTimeout();
 
 			const viewportHeight = window.innerHeight;
 			const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
@@ -1340,11 +1339,13 @@
 
 		zone.addEventListener('touchstart', function(e) {
 			isInteracting = true;
+			triggerScrollingTimeout();
 			scrollToYRatio(e.touches[0].clientY);
 		}, { passive: true });
 
 		zone.addEventListener('touchmove', function(e) {
 			if (!isInteracting) return;
+			triggerScrollingTimeout();
 			scrollToYRatio(e.touches[0].clientY);
 		}, { passive: true });
 
@@ -1502,7 +1503,6 @@
 
 		// 統一的滾動處理函式
 		function handleScroll() {
-			triggerScrollingTimeout();
 			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
 
