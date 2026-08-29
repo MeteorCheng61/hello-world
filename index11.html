@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
-	<title>南崁 - 竹北 國一即時影像 2207</title>
+	<title>南崁 - 竹北 國一即時影像 1654</title>
 	<style>
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -348,19 +348,6 @@
 			text-decoration: underline;
 		}
 
-		/* 新增全螢幕滿版放大樣式 */
-		html.fullscreen-mode, body.fullscreen-mode {
-			width: 100vw !important;
-			height: 100vh !important;
-			margin: 0 !important;
-			padding: 0 !important;
-			overflow-x: hidden !important;
-		}
-
-		html.fullscreen-mode .cctv-grid {
-			max-width: 100% !important;
-			width: 100% !important;
-		}
 	</style>
 </head>
 <body>
@@ -998,11 +985,7 @@
 			// 取得當前的里程數字 (從內部 dataset 或變數取得)
 			const currentMileText = mileBadge.getAttribute('data-mile') || '--';
 			
-			if (elapsedSec === 0) {
-				mileBadge.innerHTML = currentMileText;
-			} else {
-				mileBadge.innerHTML = `${currentMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
-			}
+			mileBadge.innerHTML = `${currentMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
 		}
 
 		// 處理每次位置變更的邏輯
@@ -1204,11 +1187,7 @@
 
 		// 因為 watchPosition 會自動監聽 updates，不需要再手動 reset timer
 		resetGpsTimer = function() {
-			if (!isGpsActive) return;
-			if (gpsTimer) {
-				clearInterval(gpsTimer);
-			}
-			gpsTimer = setInterval(trackAndScroll, 10000);
+			// 若原先其他手動操作（如切換路段）需要強制重刷，可在此重新觸發一次，或保持空實作
 		};
 
 		gpsBtn.addEventListener('click', function() {
@@ -1309,8 +1288,38 @@
 	(function() {
 		const zone = document.getElementById('rightScrollZone');
 		let isInteracting = false;
+		let ScrollingTimeout = 0;
+		let scrollingInterval = null;
+
+		// 啟動或重設 ScrollingTimeout 倒數機制
+		function triggerScrollingTimeout() {
+			// 每次滑動均重設為 10
+			ScrollingTimeout = 10;
+
+			// 若尚未啟動每秒計時器，則啟動
+			if (!scrollingInterval) {
+				scrollingInterval = setInterval(() => {
+					if (ScrollingTimeout > 0) {
+						ScrollingTimeout--;
+					}
+					
+					// 當倒數至 0 時，清除計時器
+					if (ScrollingTimeout <= 0) {
+						ScrollingTimeout = 0;
+						clearInterval(scrollingInterval);
+						scrollingInterval = null;
+					}
+				}, 1000);
+			}
+		}
+
 
 		function scrollToYRatio(clientY) {
+			// 只有在 ScrollingTimeout = 0 時才可以執行 window.scrollTo
+			if (ScrollingTimeout !== 0) {
+				return;
+			}
+
 			const viewportHeight = window.innerHeight;
 			const clampedY = Math.max(0, Math.min(clientY, viewportHeight));
 			const ratio = clampedY / viewportHeight;
@@ -1489,6 +1498,7 @@
 
 		// 統一的滾動處理函式
 		function handleScroll() {
+			triggerScrollingTimeout();
 			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
 
@@ -1520,12 +1530,10 @@
 			}, 2500);
 		}
 
-		// 點擊全螢幕按鈕切換邏輯 (支援 Android 平板放大)
+		// 點擊全螢幕按鈕切換邏輯
 		fullscreenBtn.addEventListener('click', function() {
-			const docEl = document.documentElement;
-
 			if (!isFullscreen()) {
-				// 1. 嘗試調用瀏覽器全螢幕 API
+				const docEl = document.documentElement;
 				if (docEl.requestFullscreen) {
 					docEl.requestFullscreen();
 				} else if (docEl.webkitRequestFullscreen) {
@@ -1533,12 +1541,7 @@
 				} else if (docEl.msRequestFullscreen) {
 					docEl.msRequestFullscreen();
 				}
-
-				// 2. 強制加入滿版 CSS 類別，確保 Android 平板畫面放大
-				document.documentElement.classList.add('fullscreen-mode');
-				document.body.classList.add('fullscreen-mode');
 			} else {
-				// 退出全螢幕
 				if (document.exitFullscreen) {
 					document.exitFullscreen();
 				} else if (document.webkitExitFullscreen) {
@@ -1546,24 +1549,12 @@
 				} else if (document.msExitFullscreen) {
 					document.msExitFullscreen();
 				}
-
-				// 移除滿版類別
-				document.documentElement.classList.remove('fullscreen-mode');
-				document.body.classList.remove('fullscreen-mode');
 			}
 		});
 
-		// 監聽退出全螢幕事件（例如使用者按實體返回鍵），同步移除 CSS
-		function onFullscreenChangeUpdate() {
-			updateFullscreenBtnText();
-			if (!isFullscreen()) {
-				document.documentElement.classList.remove('fullscreen-mode');
-				document.body.classList.remove('fullscreen-mode');
-			}
-		}
-
-		document.addEventListener('fullscreenchange', onFullscreenChangeUpdate);
-		document.addEventListener('webkitfullscreenchange', onFullscreenChangeUpdate);
+		// 監聽全螢幕狀態切換事件
+		document.addEventListener('fullscreenchange', updateFullscreenBtnText);
+		document.addEventListener('webkitfullscreenchange', updateFullscreenBtnText);
 
 		//  註冊唯一的滾動事件監聽
 		window.addEventListener('scroll', handleScroll);
