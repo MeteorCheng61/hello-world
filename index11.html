@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2030
+	V1.2033
 	</div>
 	
 	<style>
@@ -1503,7 +1503,6 @@
 
 		// 統一的滾動處理函式
 		function handleScroll() {
-			triggerScrollingTimeout();
 			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
 
@@ -1533,6 +1532,8 @@
 				refreshBtn.classList.remove('show');
 				fullscreenBtn.classList.remove('show');
 			}, 2500);
+			triggerScrollingTimeout();
+
 		}
 
 		// 點擊全螢幕按鈕切換邏輯
