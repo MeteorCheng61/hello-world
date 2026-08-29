@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2017
+	V1.2025
 	</div>
 	
 	<style>
@@ -671,6 +671,25 @@
 		container.innerHTML = '<div class="empty-prompt">請選擇道路與區劃以載入即時影像</div>';
 	}
 
+	// 啟動或重設 ScrollingTimeout 倒數機制
+	function triggerScrollingTimeout() {
+		// 每次滑動均重設為 10
+		ScrollingTimeout = 10;
+
+		// 若尚未啟動每秒計時器，則啟動
+		if (!scrollingInterval) {
+			scrollingInterval = setInterval(() => {
+				if (ScrollingTimeout > 0) {
+					ScrollingTimeout--;
+				} else {
+					ScrollingTimeout = 0;
+					clearInterval(scrollingInterval);
+					scrollingInterval = null;
+				}
+			}, 1000);
+		}
+	}
+
 	function onSegmentChange() {
 		const selectedRoad = roadSelect.value;
 		const selectedSegment = segmentSelect.value;
@@ -1298,26 +1317,6 @@
 		const zone = document.getElementById('rightScrollZone');
 		let isInteracting = false;
 
-		// 啟動或重設 ScrollingTimeout 倒數機制
-		function triggerScrollingTimeout() {
-			// 每次滑動均重設為 10
-			ScrollingTimeout = 10;
-
-			// 若尚未啟動每秒計時器，則啟動
-			if (!scrollingInterval) {
-				scrollingInterval = setInterval(() => {
-					if (ScrollingTimeout > 0) {
-						ScrollingTimeout--;
-					} else {
-						ScrollingTimeout = 0;
-						clearInterval(scrollingInterval);
-						scrollingInterval = null;
-					}
-				}, 1000);
-			}
-		}
-
-
 		function scrollToYRatio(clientY) {
 			triggerScrollingTimeout();
 
@@ -1504,6 +1503,7 @@
 
 		// 統一的滾動處理函式
 		function handleScroll() {
+			triggerScrollingTimeout();
 			// 1. 處理重新整理與 GPS 按鈕顯示
 			refreshBtn.classList.add('show');
 
@@ -1564,6 +1564,7 @@
 		//  註冊唯一的滾動事件監聽
 		window.addEventListener('scroll', handleScroll);
 	})();
+
 
 </script>
 </body>
