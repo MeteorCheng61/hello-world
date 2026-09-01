@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 	<title>國道即時影像 0518</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.2205
+	V1.0934
 	</div>
 
 	<style>
@@ -195,6 +195,12 @@
 			opacity: 0;
 			white-space: pre-line; /* 新增：允許 \n 換行 */
 			text-align: center;    /* 新增：文字居中 */
+		}
+
+		/* 小數點第一位數字樣式：紅色且放大 50% */
+		.gps-mile-badge .decimal-first {
+			font-size: 1.5em;
+			line-height: 1;
 		}
 
 		.gps-mile-badge.show {
@@ -3843,10 +3849,14 @@
 			// 取得當前的里程數字 (從內部 dataset 或變數取得)
 			const currentMileText = mileBadge.getAttribute('data-mile') || '--';
 			
+			// 將「小數點 + 第一位數字」替換為包含 span 的 HTML 結構
+			// 例如："50.1" -> "50.<span class="decimal-first">1</span>"
+			const formattedMileText = currentMileText.replace(/\.(\d)/, '.<span class="decimal-first">$1</span>');
+
 			if (elapsedSec === 0) {
-				mileBadge.innerHTML = currentMileText;
+				mileBadge.innerHTML = formattedMileText;
 			} else {
-				mileBadge.innerHTML = `${currentMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
+				mileBadge.innerHTML = `${formattedMileText}<span class="sec-text">（${elapsedSec} 秒前更新）</span>`;
 			}
 		}
 
