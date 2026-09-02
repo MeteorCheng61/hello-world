@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 	<title>南崁 - 竹北 國一即時影像</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V2.0109
+	V2.0131
 	</div>
 	
 	<style>
@@ -480,7 +480,7 @@
 
 	async function fetchCCTVData() {
 	  try {
-		const response = await fetch('/.netlify/functions/get-cctv11');
+		const response = await fetch('/.netlify/functions/get-cctv?type=11');
 		if (!response.ok) throw new Error('Network error');
 		
 		All_Data = await response.json();
