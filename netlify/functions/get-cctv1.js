@@ -1,6 +1,16 @@
-// .netlify/functions/get-cctv1.js
+// get-cctv1
 
 exports.handler = async (event, context) => {
+	const referer = event.headers.referer || event.headers.Referer || '';
+	const allowedDomain = 'https://hmlyhawk.netlify.app';
+
+	if (!referer.startsWith(allowedDomain)) {
+		return {
+		  statusCode: 403,
+		  body: JSON.stringify({ message: 'Forbidden: Unauthorized access' })
+		};
+	}
+
 		const All_Data = {
 			"國道1號": {
 				"南崁 - 竹北": [
@@ -76,12 +86,12 @@ exports.handler = async (event, context) => {
 			},
 		};
 
-  return {
-	statusCode: 200,
-	headers: {
-	  "Content-Type": "application/json",
-	  "Access-Control-Allow-Origin": "*"
-	},
-	body: JSON.stringify(All_Data)
-  };
+	return {
+		statusCode: 200,
+		headers: {
+		  "Content-Type": "application/json",
+		  "Access-Control-Allow-Origin": "*"
+		},
+		body: JSON.stringify(All_Data)
+	};
 };
