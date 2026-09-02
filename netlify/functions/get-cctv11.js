@@ -1,6 +1,20 @@
 // .netlify/functions/get-cctv11
 
 exports.handler = async (event, context) => {
+	const headers = event.headers || {};
+		// 1. 判斷是否為瀏覽器網址列直接開啟 (Sec-Fetch-Dest: document)
+		const isDirectBrowserAccess = headers['sec-fetch-dest'] === 'document';
+		// 2. 判斷是否為同源/合法 Fetch 請求
+		const fetchSite = headers['sec-fetch-site']; // same-origin, same-site, cross-site 等
+		// 若為直接開啟，或不是透過 fetch/xhr 發起，拒絕存取
+		if (isDirectBrowserAccess) {
+		return {
+		  statusCode: 403,
+		  headers: { "Content-Type": "text/plain; charset=utf-8" },
+		  body: "403 Forbidden: Direct access is not allowed."
+		};
+	}
+
 		const All_Data = {
 			"國道1號": {
 				"南崁 - 竹北": [
