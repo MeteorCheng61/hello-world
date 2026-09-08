@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 	<title>國道即時影像 0518</title>
 	<div style="text-align: left; color: #31da47; font-size: 12px; font-weight: bold; margin-bottom: 5px;">
-	V1.0934
+	V1.1022
 	</div>
 
 	<style>
@@ -3834,8 +3834,36 @@
 			const mPrev = parseFloat(prevPoint.item.locationMiles);
 			const mNext = parseFloat(nextPoint.item.locationMiles);
 
+			// 兩參考點之間的實際直線距離
+			const dBetween = getDistanceKm(
+				parseFloat(prevPoint.item.lat), parseFloat(prevPoint.item.lon),
+				parseFloat(nextPoint.item.lat), parseFloat(nextPoint.item.lon)
+			);
+
 			let calculatedMile = mPrev;
-			if (dPrev + dNext > 0) {
+
+			// 1. 判斷是否在兩點之間 (內插區域)
+			// 若 (dPrev + dNext) 與兩點間距 dBetween 相差不大，代表使用者在兩點之間
+			if (Math.abs((dPrev + dNext) - dBetween) < 0.05) {
+				// 原有的兩點反比加權內插
+				if (dPrev + dNext > 0) {
+					calculatedMile = (mPrev * dNext + mNext * dPrev) / (dPrev + dNext);
+				}
+			} 
+			// 2. 當前位置靠近 prevPoint 外側 (當前位置 < prevIdx < nextIdx)
+			else if (dNext > dPrev && dNext > dBetween) {
+				// 根據 prev 與 next 的單位變化率進行外推
+				const mileRate = (mNext - mPrev) / (dBetween || 1);
+				calculatedMile = mPrev - (dPrev * mileRate);
+			} 
+			// 3. 當前位置靠近 nextPoint 外側 (prevIdx < nextIdx < 當前位置)
+			else if (dPrev > dNext && dPrev > dBetween) {
+				// 根據 prev 與 next 的單位變化率進行外推
+				const mileRate = (mNext - mPrev) / (dBetween || 1);
+				calculatedMile = mNext + (dNext * mileRate);
+			} 
+			// 備用防護
+			else {
 				calculatedMile = (mPrev * dNext + mNext * dPrev) / (dPrev + dNext);
 			}
 
